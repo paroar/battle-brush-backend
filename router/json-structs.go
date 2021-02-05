@@ -21,6 +21,14 @@ type ClientIDJSON struct {
 	ID string `json:"userid"`
 }
 
+// RoomJSON json structure of room creation
+type RoomJSON struct {
+	ID         string `json:"userid"`
+	NumPlayers int    `json:"numPlayers"`
+	Time       int    `json:"time"`
+	Rounds     int    `json:"rounds"`
+}
+
 // JoinRoomJSON json structure to join a Room
 type JoinRoomJSON struct {
 	RoomID   string `json:"roomid"`

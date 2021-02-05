@@ -87,26 +87,32 @@ func GetLobbyRooms(lobby *game.Lobby, rw http.ResponseWriter, r *http.Request) {
 
 // CreateRoom POST Method creates a Room and runs it returning his ID
 func CreateRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
-	var _clientIDJSON ClientIDJSON
+	var _roomJSON RoomJSON
 
 	s, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(rw, "Couldn't read body", http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(s, &_clientIDJSON)
+	err = json.Unmarshal(s, &_roomJSON)
 	if err != nil {
 		http.Error(rw, "Couldn't Unmarshal", http.StatusInternalServerError)
 		return
 	}
 
-	client, err := lobby.GetLobbyClient(_clientIDJSON.ID)
+	client, err := lobby.GetLobbyClient(_roomJSON.ID)
 	if err != nil {
 		http.Error(rw, "Client not found", http.StatusNotFound)
 		return
 	}
 
-	room := game.NewRoom(lobby)
+	roomOptions := game.RoomOptions{
+		NumPlayers: _roomJSON.NumPlayers,
+		Time:       _roomJSON.Time,
+		Rounds:     _roomJSON.Rounds,
+	}
+
+	room := game.NewRoom(lobby, roomOptions)
 
 	r := RoomIDJSON{
 		ID: room.ID,
@@ -123,6 +129,8 @@ func CreateRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
 
 	lobby.LeaveClientChan <- client
 	room.JoinClientChan <- client
+
+	client.Room = room
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
@@ -158,6 +166,7 @@ func JoinRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
 
 	lobby.LeaveClientChan <- client
 	room.JoinClientChan <- client
+	client.Room = room
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)

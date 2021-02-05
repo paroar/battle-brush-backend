@@ -69,5 +69,6 @@ func (c *Client) readPump() {
 
 func (c *Client) disconnect() {
 	c.Lobby.LeaveClientChan <- c
+	c.Room.LeaveClientChan <- c
 	c.Conn.Close()
 }

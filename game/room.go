@@ -11,10 +11,19 @@ type Room struct {
 	theme           string
 	ID              string
 	broadcast       chan []byte
+	RoomOptions     RoomOptions
+}
+
+// RoomOptions struct
+type RoomOptions struct {
+	NumPlayers int
+	Time       int
+	Rounds     int
+	Private    bool
 }
 
 // NewRoom creates a Room
-func NewRoom(lobby *Lobby) *Room {
+func NewRoom(lobby *Lobby, roomOptions RoomOptions) *Room {
 	return &Room{
 		lobby:           lobby,
 		Clients:         make(map[*Client]bool),
@@ -23,6 +32,7 @@ func NewRoom(lobby *Lobby) *Room {
 		theme:           "beach",
 		ID:              uuid.NewString(),
 		broadcast:       make(chan []byte),
+		RoomOptions:     roomOptions,
 	}
 }
 
@@ -31,24 +41,26 @@ func (r *Room) Run() {
 	for {
 		select {
 		case client := <-r.JoinClientChan:
-			r.registerClient(client)
+			r.joinClient(client)
 		case client := <-r.LeaveClientChan:
-			r.unregisterClient(client)
+			r.leaveClient(client)
 		case msg := <-r.broadcast:
-			r.broadcastToClients(msg)
+			r.broadcastTo(msg)
 		}
 	}
 }
 
-func (r *Room) registerClient(c *Client) {
+func (r *Room) joinClient(c *Client) {
 	r.Clients[c] = true
 }
 
-func (r *Room) unregisterClient(c *Client) {
-	delete(r.Clients, c)
+func (r *Room) leaveClient(c *Client) {
+	if _, ok := r.Clients[c]; ok {
+		delete(r.Clients, c)
+	}
 }
 
-func (r *Room) broadcastToClients(msg []byte) {
+func (r *Room) broadcastTo(msg []byte) {
 	for client := range r.Clients {
 		client.Send <- msg
 	}
@@ -62,13 +74,3 @@ func GetRoomClients(r *Room) []Client {
 	}
 	return clients
 }
-
-// func CreateRoom(lobby *Lobby, client *Client) {
-
-// 	room := NewRoom(lobby)
-// 	room.Run()
-
-// 	lobby.JoinRoomChan <- room
-// 	room.JoinClientChan <- client
-
-// }
