@@ -1,11 +1,11 @@
 package game
 
 import (
-	"encoding/json"
 	"log"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/paroar/battle-brush-backend/message"
 )
 
 // Client struct
@@ -14,7 +14,7 @@ type Client struct {
 	Conn  *websocket.Conn
 	Lobby *Lobby
 	Room  *Room
-	Send  chan []byte
+	Send  chan *message.Message
 }
 
 // NewClient creates a Client without a Room atached
@@ -22,7 +22,7 @@ func NewClient(lobby *Lobby) *Client {
 	return &Client{
 		ID:    uuid.NewString(),
 		Lobby: lobby,
-		Send:  make(chan []byte),
+		Send:  make(chan *message.Message),
 	}
 }
 
@@ -31,14 +31,7 @@ func (c *Client) writePump() {
 
 	for {
 		msg := <-c.Send
-
-		var _msg Message
-		err := json.Unmarshal(msg, &_msg)
-		if err != nil {
-			log.Println(err)
-		}
-
-		err = c.Conn.WriteJSON(_msg)
+		err := c.Conn.WriteJSON(msg)
 		if err != nil {
 			log.Println(err)
 		}
@@ -49,19 +42,14 @@ func (c *Client) readPump() {
 	defer c.disconnect()
 
 	for {
-		var _msg Message
-		err := c.Conn.ReadJSON(&_msg)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		msg, err := json.Marshal(_msg)
+		var msg message.Message
+		err := c.Conn.ReadJSON(&msg)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		if c.Room != nil {
-			c.Room.Broadcast <- msg
+			c.Room.Broadcast <- &msg
 		}
 	}
 }

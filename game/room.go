@@ -2,6 +2,7 @@ package game
 
 import (
 	"github.com/google/uuid"
+	"github.com/paroar/battle-brush-backend/message"
 )
 
 // Room struct
@@ -12,7 +13,7 @@ type Room struct {
 	LeaveClientChan chan *Client
 	theme           string
 	ID              string
-	Broadcast       chan []byte
+	Broadcast       chan *message.Message
 	RoomOptions     RoomOptions
 }
 
@@ -33,7 +34,7 @@ func NewRoom(lobby *Lobby, roomOptions RoomOptions) *Room {
 		LeaveClientChan: make(chan *Client),
 		theme:           "beach",
 		ID:              uuid.NewString(),
-		Broadcast:       make(chan []byte),
+		Broadcast:       make(chan *message.Message),
 		RoomOptions:     roomOptions,
 	}
 }
@@ -54,17 +55,25 @@ func (r *Room) Run() {
 
 func (r *Room) joinClient(c *Client) {
 	r.Clients[c] = true
-	r.broadcastTo([]byte(`{"type": "1", "content": "client joined"}`))
+	msg := &message.Message{
+		Type:    message.TypeJoin,
+		Content: "Client joined",
+	}
+	r.broadcastTo(msg)
 }
 
 func (r *Room) leaveClient(c *Client) {
 	if _, ok := r.Clients[c]; ok {
 		delete(r.Clients, c)
+		msg := &message.Message{
+			Type:    message.TypeLeave,
+			Content: "Client left",
+		}
+		r.broadcastTo(msg)
 	}
-	r.broadcastTo([]byte(`{"type": "1", "content": "client left"}`))
 }
 
-func (r *Room) broadcastTo(msg []byte) {
+func (r *Room) broadcastTo(msg *message.Message) {
 	for client := range r.Clients {
 		client.Send <- msg
 	}

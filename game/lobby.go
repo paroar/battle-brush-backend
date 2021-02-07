@@ -1,13 +1,13 @@
 package game
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/paroar/battle-brush-backend/message"
 )
 
 var upgrader = websocket.Upgrader{
@@ -26,7 +26,7 @@ type Lobby struct {
 	rooms           map[*Room]bool
 	JoinRoomChan    chan *Room
 	LeaveRoomChan   chan *Room
-	broadcast       chan []byte
+	broadcast       chan *message.Message
 }
 
 // NewLobby creates a Lobby
@@ -38,7 +38,7 @@ func NewLobby() *Lobby {
 		rooms:           make(map[*Room]bool),
 		JoinRoomChan:    make(chan *Room),
 		LeaveRoomChan:   make(chan *Room),
-		broadcast:       make(chan []byte),
+		broadcast:       make(chan *message.Message),
 	}
 }
 
@@ -53,7 +53,7 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ID:    uuid.NewString(),
 		Lobby: lobby,
 		Conn:  conn,
-		Send:  make(chan []byte),
+		Send:  make(chan *message.Message),
 	}
 
 	lobby.JoinClientChan <- client
@@ -61,12 +61,11 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	go client.writePump()
 	go client.readPump()
 
-	msg := &Message{
-		Type:    "id",
+	msg := &message.Message{
+		Type:    message.TypeLogin,
 		Content: client.ID,
 	}
-	_msg, err := json.Marshal(msg)
-	client.Send <- _msg
+	client.Send <- msg
 
 }
 
@@ -108,7 +107,7 @@ func (lobby *Lobby) leaveRoom(r *Room) {
 	}
 }
 
-func (lobby *Lobby) broadcastTo(msg []byte) {
+func (lobby *Lobby) broadcastTo(msg *message.Message) {
 	for client := range lobby.clients {
 		client.Send <- msg
 	}
