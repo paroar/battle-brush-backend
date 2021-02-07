@@ -1,6 +1,8 @@
 package game
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 // Room struct
 type Room struct {
@@ -10,7 +12,7 @@ type Room struct {
 	LeaveClientChan chan *Client
 	theme           string
 	ID              string
-	broadcast       chan []byte
+	Broadcast       chan []byte
 	RoomOptions     RoomOptions
 }
 
@@ -31,7 +33,7 @@ func NewRoom(lobby *Lobby, roomOptions RoomOptions) *Room {
 		LeaveClientChan: make(chan *Client),
 		theme:           "beach",
 		ID:              uuid.NewString(),
-		broadcast:       make(chan []byte),
+		Broadcast:       make(chan []byte),
 		RoomOptions:     roomOptions,
 	}
 }
@@ -44,7 +46,7 @@ func (r *Room) Run() {
 			r.joinClient(client)
 		case client := <-r.LeaveClientChan:
 			r.leaveClient(client)
-		case msg := <-r.broadcast:
+		case msg := <-r.Broadcast:
 			r.broadcastTo(msg)
 		}
 	}
@@ -52,12 +54,14 @@ func (r *Room) Run() {
 
 func (r *Room) joinClient(c *Client) {
 	r.Clients[c] = true
+	r.broadcastTo([]byte(`{"type": "1", "content": "client joined"}`))
 }
 
 func (r *Room) leaveClient(c *Client) {
 	if _, ok := r.Clients[c]; ok {
 		delete(r.Clients, c)
 	}
+	r.broadcastTo([]byte(`{"type": "1", "content": "client left"}`))
 }
 
 func (r *Room) broadcastTo(msg []byte) {
