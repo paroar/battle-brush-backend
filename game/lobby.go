@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/paroar/battle-brush-backend/message"
 )
@@ -49,23 +48,21 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{
-		ID:    uuid.NewString(),
-		Lobby: lobby,
-		Conn:  conn,
-		Send:  make(chan *message.Message),
-	}
+	client := NewClient(lobby, conn)
 
 	lobby.JoinClientChan <- client
 
 	go client.writePump()
 	go client.readPump()
 
-	msg := &message.Message{
-		Type:    message.TypeLogin,
-		Content: client.ID,
+	_msg := &message.Message{
+		Type: message.TypeLogin,
+		Content: message.Login{
+			ID: client.ID,
+		},
 	}
-	client.Send <- msg
+
+	client.Send <- _msg
 
 }
 

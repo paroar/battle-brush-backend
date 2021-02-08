@@ -55,21 +55,25 @@ func (r *Room) Run() {
 
 func (r *Room) joinClient(c *Client) {
 	r.Clients[c] = true
-	msg := &message.Message{
-		Type:    message.TypeJoin,
-		Content: "Client joined",
+	_msg := &message.Message{
+		Type: message.TypeJoin,
+		Content: message.Join{
+			ID: c.ID,
+		},
 	}
-	r.broadcastTo(msg)
+	r.broadcastTo(_msg)
 }
 
 func (r *Room) leaveClient(c *Client) {
 	if _, ok := r.Clients[c]; ok {
 		delete(r.Clients, c)
-		msg := &message.Message{
-			Type:    message.TypeLeave,
-			Content: "Client left",
+		_msg := &message.Message{
+			Type: message.TypeLeave,
+			Content: message.Leave{
+				ID: c.ID,
+			},
 		}
-		r.broadcastTo(msg)
+		r.broadcastTo(_msg)
 	}
 }
 

@@ -24,14 +24,6 @@ func NewRouter() *http.Server {
 	//LOBBY
 	r.Handle("/ws", lobby)
 
-	r.HandleFunc("/signin", func(rw http.ResponseWriter, r *http.Request) {
-		SignIn(lobby, rw, r)
-	}).Methods(http.MethodPost)
-
-	r.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		LogOut(lobby, rw, r)
-	}).Methods(http.MethodDelete)
-
 	//ROOMS
 	r.HandleFunc("/lobbyrooms", func(rw http.ResponseWriter, r *http.Request) {
 		GetLobbyRooms(lobby, rw, r)
@@ -54,6 +46,7 @@ func NewRouter() *http.Server {
 		"http://localhost:3000",
 	}
 	allowedOrigins := handlers.AllowedOrigins(origins)
+
 	methods := []string{
 		http.MethodGet,
 		http.MethodPost,

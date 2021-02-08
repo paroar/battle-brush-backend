@@ -8,27 +8,6 @@ import (
 	"github.com/paroar/battle-brush-backend/game"
 )
 
-// SignIn POST Method that creates a new Client and returns the userID
-func SignIn(lobby *game.Lobby, rw http.ResponseWriter, r *http.Request) {
-	client := game.NewClient(lobby)
-
-	lobby.JoinClientChan <- client
-
-	var _clientID = &ClientIDJSON{
-		ID: client.ID,
-	}
-
-	response, err := json.Marshal(_clientID)
-	if err != nil {
-		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
-		return
-	}
-
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(response)
-}
-
 // LogOut DELETE Method creates a Room and runs it returning his ID
 func LogOut(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
 	var _clientIDJSON ClientIDJSON
@@ -161,6 +140,11 @@ func JoinRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
 	room, err := lobby.GetLobbyRoom(_joinRoomStruct.RoomID)
 	if err != nil {
 		http.Error(rw, "Room not found", http.StatusNotFound)
+		return
+	}
+
+	if len(room.Clients) >= room.RoomOptions.NumPlayers {
+		http.Error(rw, "Room is full", http.StatusNotAcceptable)
 		return
 	}
 
