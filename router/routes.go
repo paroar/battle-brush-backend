@@ -8,11 +8,93 @@ import (
 	"github.com/paroar/battle-brush-backend/game"
 )
 
-// LogOut DELETE Method creates a Room and runs it returning his ID
-func LogOut(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
-	var _clientIDJSON ClientIDJSON
+// CreatePrivateRoom POST Method creates a Room and runs it returning his ID
+func CreatePrivateRoom(lobby *game.Lobby, rw http.ResponseWriter, r *http.Request) {
+	var _roomJSON RoomJSON
+
+	bytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(rw, "Couldn't read body", http.StatusInternalServerError)
+		return
+	}
+	err = json.Unmarshal(bytes, &_roomJSON)
+	if err != nil {
+		http.Error(rw, "Couldn't Unmarshal", http.StatusInternalServerError)
+		return
+	}
+
+	roomOptions := &game.RoomOptions{
+		NumPlayers: _roomJSON.NumPlayers,
+		Time:       _roomJSON.Time,
+		Rounds:     _roomJSON.Rounds,
+	}
+
+	client, err := lobby.GetClient(_roomJSON.ID)
+	if err != nil {
+		http.Error(rw, "Client not found", http.StatusNotFound)
+		return
+	}
+
+	room := lobby.CreatePrivateRoom(roomOptions, client)
+
+	roomJSON := &RoomIDJSON{
+		ID: room.ID,
+	}
+
+	res, err := json.Marshal(roomJSON)
+	if err != nil {
+		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(res)
+}
+
+// JoinPrivateRoom PATCH Method joins a Client into a Room
+func JoinPrivateRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
+	var _joinRoomStruct JoinRoomJSON
 
 	s, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		http.Error(rw, "Couldn't read body", http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(s, &_joinRoomStruct)
+	if err != nil {
+		http.Error(rw, "Couldn't Unmarhsal", http.StatusBadRequest)
+		return
+	}
+
+	client, err := lobby.GetClient(_joinRoomStruct.ClientID)
+	if err != nil {
+		http.Error(rw, "Client not found", http.StatusNotFound)
+		return
+	}
+
+	room, err := lobby.GetPrivateRoom(_joinRoomStruct.RoomID)
+	if err != nil {
+		http.Error(rw, "Room not found", http.StatusConflict)
+		return
+	}
+
+	err = lobby.JoinPrivateRoom(room, client)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write([]byte("Joined"))
+}
+
+// CreateOrJoinRoom POST Method creates a Room and runs it returning his ID
+func CreateOrJoinRoom(lobby *game.Lobby, rw http.ResponseWriter, r *http.Request) {
+	var _clientIDJSON ClientIDJSON
+
+	s, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(rw, "Couldn't read body", http.StatusInternalServerError)
 		return
@@ -23,152 +105,19 @@ func LogOut(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	client, err := lobby.GetLobbyClient(_clientIDJSON.ID)
+	client, err := lobby.GetClient(_clientIDJSON.ID)
 	if err != nil {
 		http.Error(rw, "Client not found", http.StatusNotFound)
 		return
 	}
 
-	lobby.LeaveClientChan <- client
+	room := lobby.CreateOrJoinPublicRoom(client)
 
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-
-}
-
-// GetLobbyRooms GET Method returns all Rooms in Lobby
-func GetLobbyRooms(lobby *game.Lobby, rw http.ResponseWriter, r *http.Request) {
-	var lrs []LobbyRoomJSON
-
-	rooms := lobby.GetLobbyRooms()
-	for _, room := range rooms {
-		clients := []string{}
-		for client := range room.Clients {
-			clients = append(clients, client.ID)
-		}
-		lr := LobbyRoomJSON{
-			ID:      room.ID,
-			Clients: clients,
-		}
-		lrs = append(lrs, lr)
-	}
-
-	response, err := json.Marshal(lrs)
-	if err != nil {
-		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
-		return
-	}
-
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(response)
-}
-
-// CreateRoom POST Method creates a Room and runs it returning his ID
-func CreateRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
-	var _roomJSON RoomJSON
-
-	s, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		http.Error(rw, "Couldn't read body", http.StatusInternalServerError)
-		return
-	}
-	err = json.Unmarshal(s, &_roomJSON)
-	if err != nil {
-		http.Error(rw, "Couldn't Unmarshal", http.StatusInternalServerError)
-		return
-	}
-
-	client, err := lobby.GetLobbyClient(_roomJSON.ID)
-	if err != nil {
-		http.Error(rw, "Client not found", http.StatusNotFound)
-		return
-	}
-
-	roomOptions := game.RoomOptions{
-		NumPlayers: _roomJSON.NumPlayers,
-		Time:       _roomJSON.Time,
-		Rounds:     _roomJSON.Rounds,
-	}
-
-	room := game.NewRoom(lobby, roomOptions)
-
-	r := RoomIDJSON{
+	roomJSON := &RoomIDJSON{
 		ID: room.ID,
 	}
 
-	response, err := json.Marshal(r)
-	if err != nil {
-		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
-		return
-	}
-
-	go room.Run()
-	lobby.JoinRoomChan <- room
-
-	lobby.LeaveClientChan <- client
-	room.JoinClientChan <- client
-
-	client.Room = room
-
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(response)
-}
-
-// JoinRoom PATCH Method joins a Client into a Room
-func JoinRoom(lobby *game.Lobby, rw http.ResponseWriter, req *http.Request) {
-	var _joinRoomStruct JoinRoomJSON
-
-	s, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		http.Error(rw, "Couldn't read body", http.StatusBadRequest)
-		return
-	}
-	err = json.Unmarshal(s, &_joinRoomStruct)
-	if err != nil {
-		http.Error(rw, "Couldn't Unmarhsal", http.StatusInternalServerError)
-		return
-	}
-
-	client, err := lobby.GetLobbyClient(_joinRoomStruct.ClientID)
-	if err != nil {
-		http.Error(rw, "Client not found", http.StatusNotFound)
-		return
-	}
-
-	room, err := lobby.GetLobbyRoom(_joinRoomStruct.RoomID)
-	if err != nil {
-		http.Error(rw, "Room not found", http.StatusNotFound)
-		return
-	}
-
-	if len(room.Clients) >= room.RoomOptions.NumPlayers {
-		http.Error(rw, "Room is full", http.StatusNotAcceptable)
-		return
-	}
-
-	lobby.LeaveClientChan <- client
-	room.JoinClientChan <- client
-	client.Room = room
-
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte(""))
-}
-
-// GetClients GET method to get all Clients in the Lobby
-func GetClients(l *game.Lobby, rw http.ResponseWriter, r *http.Request) {
-	clients := []string{}
-	for _, client := range l.GetLobbyClients() {
-		clients = append(clients, client.ID)
-	}
-
-	var _clientsJSON = ClientsIDJSON{
-		ClientsID: clients,
-	}
-
-	response, err := json.Marshal(_clientsJSON)
+	res, err := json.Marshal(roomJSON)
 	if err != nil {
 		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
 		return
@@ -176,5 +125,5 @@ func GetClients(l *game.Lobby, rw http.ResponseWriter, r *http.Request) {
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(response)
+	rw.Write(res)
 }

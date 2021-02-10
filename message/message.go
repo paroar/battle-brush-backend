@@ -12,19 +12,27 @@ type Message struct {
 }
 
 type Login struct {
-	ID string `json:"userid"`
+	UserName string `json:"userName"`
+	ID       string `json:"userid"`
 }
 
 type Join struct {
-	ID string `json:"userid"`
+	UserName string `json:"userName"`
+	ID       string `json:"userid"`
 }
 
 type Leave struct {
-	ID string `json:"userid"`
+	UserName string `json:"userName"`
+	ID       string `json:"userid"`
 }
 
 type Chat struct {
-	Msg string `json:"msg"`
+	Name string `json:"userName"`
+	Msg  string `json:"msg"`
+}
+
+type Players struct {
+	UserNames []string `json:"userNames"`
 }
 
 // NewMessage returns
@@ -37,10 +45,11 @@ func NewMessage(messageType string, content IContent) *Message {
 
 // Common Message types
 const (
-	TypeLogin  = "Login"
-	TypeLogout = "Logout"
-	TypeJoin   = "Join"
-	TypeLeave  = "Leave"
-	TypeChat   = "Chat"
-	TypeVote   = "Vote"
+	TypeLogin   = "Login"
+	TypeLogout  = "Logout"
+	TypeJoin    = "Join"
+	TypeLeave   = "Leave"
+	TypeChat    = "Chat"
+	TypeVote    = "Vote"
+	TypePlayers = "Players"
 )

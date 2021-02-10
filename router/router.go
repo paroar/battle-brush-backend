@@ -25,22 +25,17 @@ func NewRouter() *http.Server {
 	r.Handle("/ws", lobby)
 
 	//ROOMS
-	r.HandleFunc("/lobbyrooms", func(rw http.ResponseWriter, r *http.Request) {
-		GetLobbyRooms(lobby, rw, r)
-	}).Methods(http.MethodGet)
-
 	r.HandleFunc("/createroom", func(rw http.ResponseWriter, r *http.Request) {
-		CreateRoom(lobby, rw, r)
+		CreatePrivateRoom(lobby, rw, r)
 	}).Methods(http.MethodPost)
 
 	r.HandleFunc("/joinroom", func(rw http.ResponseWriter, r *http.Request) {
-		JoinRoom(lobby, rw, r)
+		JoinPrivateRoom(lobby, rw, r)
 	}).Methods(http.MethodPatch)
 
-	//CLIENTS
-	r.HandleFunc("/clients", func(rw http.ResponseWriter, r *http.Request) {
-		GetClients(lobby, rw, r)
-	}).Methods(http.MethodGet)
+	r.HandleFunc("/createjoin", func(rw http.ResponseWriter, r *http.Request) {
+		CreateOrJoinRoom(lobby, rw, r)
+	}).Methods(http.MethodPost)
 
 	origins := []string{
 		"http://localhost:3000",
@@ -50,7 +45,6 @@ func NewRouter() *http.Server {
 	methods := []string{
 		http.MethodGet,
 		http.MethodPost,
-		http.MethodDelete,
 		http.MethodPut,
 		http.MethodPatch,
 		http.MethodOptions,

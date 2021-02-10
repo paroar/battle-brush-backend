@@ -14,7 +14,7 @@ type Room struct {
 	theme           string
 	ID              string
 	Broadcast       chan *message.Message
-	RoomOptions     RoomOptions
+	Options         RoomOptions
 }
 
 // RoomOptions struct
@@ -22,11 +22,16 @@ type RoomOptions struct {
 	NumPlayers int
 	Time       int
 	Rounds     int
-	Private    bool
 }
 
-// NewRoom creates a Room
-func NewRoom(lobby *Lobby, roomOptions RoomOptions) *Room {
+var defaultOptions = &RoomOptions{
+	NumPlayers: 5,
+	Time:       90,
+	Rounds:     3,
+}
+
+// NewDefaultRoom creates a Room
+func NewDefaultRoom(lobby *Lobby) *Room {
 	return &Room{
 		lobby:           lobby,
 		Clients:         make(map[*Client]bool),
@@ -35,59 +40,102 @@ func NewRoom(lobby *Lobby, roomOptions RoomOptions) *Room {
 		theme:           "beach",
 		ID:              uuid.NewString(),
 		Broadcast:       make(chan *message.Message),
-		RoomOptions:     roomOptions,
+		Options:         *defaultOptions,
+	}
+}
+
+// NewPrivateRoom creates a Room
+func NewPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
+	return &Room{
+		lobby:           lobby,
+		Clients:         make(map[*Client]bool),
+		JoinClientChan:  make(chan *Client),
+		LeaveClientChan: make(chan *Client),
+		theme:           "beach",
+		ID:              uuid.NewString(),
+		Broadcast:       make(chan *message.Message),
+		Options:         *roomOptions,
 	}
 }
 
 // Run runs the Room
-func (r *Room) Run() {
+func (room *Room) Run() {
 	for {
 		select {
-		case client := <-r.JoinClientChan:
-			r.joinClient(client)
-		case client := <-r.LeaveClientChan:
-			r.leaveClient(client)
-		case msg := <-r.Broadcast:
-			r.broadcastTo(msg)
+		case client := <-room.JoinClientChan:
+			room.joinClient(client)
+		case client := <-room.LeaveClientChan:
+			room.leaveClient(client)
+		case msg := <-room.Broadcast:
+			room.broadcastTo(msg)
 		}
 	}
 }
 
-func (r *Room) joinClient(c *Client) {
-	r.Clients[c] = true
+func (room *Room) joinClient(c *Client) {
+	room.Clients[c] = true
 	_msg := &message.Message{
 		Type: message.TypeJoin,
 		Content: message.Join{
-			ID: c.ID,
+			UserName: c.Name,
+			ID:       c.ID,
 		},
 	}
-	r.broadcastTo(_msg)
+	room.broadcastTo(_msg)
+
+	_msg = &message.Message{
+		Type: message.TypePlayers,
+		Content: message.Players{
+			UserNames: room.getUserNames(),
+		},
+	}
+	room.broadcastTo(_msg)
 }
 
-func (r *Room) leaveClient(c *Client) {
-	if _, ok := r.Clients[c]; ok {
-		delete(r.Clients, c)
+func (room *Room) leaveClient(c *Client) {
+	if _, ok := room.Clients[c]; ok {
+		delete(room.Clients, c)
 		_msg := &message.Message{
 			Type: message.TypeLeave,
 			Content: message.Leave{
-				ID: c.ID,
+				UserName: c.Name,
+				ID:       c.ID,
 			},
 		}
-		r.broadcastTo(_msg)
+		room.broadcastTo(_msg)
+		_msg = &message.Message{
+			Type: message.TypePlayers,
+			Content: message.Players{
+				UserNames: room.getUserNames(),
+			},
+		}
+		room.broadcastTo(_msg)
 	}
 }
 
-func (r *Room) broadcastTo(msg *message.Message) {
-	for client := range r.Clients {
+func (room *Room) broadcastTo(msg *message.Message) {
+	for client := range room.Clients {
 		client.Send <- msg
 	}
 }
 
+func (room *Room) getUserNames() []string {
+	var userNames []string
+	for client := range room.Clients {
+		userNames = append(userNames, client.Name)
+	}
+	return userNames
+}
+
 // GetRoomClients returns all Clients in the Room
-func GetRoomClients(r *Room) []Client {
+func GetRoomClients(room *Room) []Client {
 	var clients = []Client{}
-	for client := range r.Clients {
+	for client := range room.Clients {
 		clients = append(clients, *client)
 	}
 	return clients
+}
+
+func (room *Room) isFull() bool {
+	return len(room.Clients) >= room.Options.NumPlayers
 }
