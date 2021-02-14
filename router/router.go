@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/paroar/battle-brush-backend/game"
+	"github.com/paroar/battle-brush-backend/lobby"
 )
 
 var addr = flag.String("addr", ":8085", "http server address")
@@ -18,23 +18,23 @@ func NewRouter() *http.Server {
 
 	r := mux.NewRouter()
 
-	lobby := game.NewLobby()
-	go lobby.Run()
+	l := lobby.NewLobby()
+	go l.Run()
 
 	//LOBBY
-	r.Handle("/ws", lobby)
+	r.Handle("/ws", l)
 
 	//ROOMS
 	r.HandleFunc("/createroom", func(rw http.ResponseWriter, r *http.Request) {
-		CreatePrivateRoom(lobby, rw, r)
+		CreatePrivateRoom(l, rw, r)
 	}).Methods(http.MethodPost)
 
 	r.HandleFunc("/joinroom", func(rw http.ResponseWriter, r *http.Request) {
-		JoinPrivateRoom(lobby, rw, r)
+		JoinPrivateRoom(l, rw, r)
 	}).Methods(http.MethodPatch)
 
 	r.HandleFunc("/createjoin", func(rw http.ResponseWriter, r *http.Request) {
-		CreateOrJoinRoom(lobby, rw, r)
+		CreateOrJoinRoom(l, rw, r)
 	}).Methods(http.MethodPost)
 
 	origins := []string{

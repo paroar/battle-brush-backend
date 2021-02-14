@@ -1,4 +1,4 @@
-package game
+package lobby
 
 import (
 	"github.com/google/uuid"
@@ -11,7 +11,6 @@ type Room struct {
 	Clients         map[*Client]bool
 	JoinClientChan  chan *Client
 	LeaveClientChan chan *Client
-	theme           string
 	ID              string
 	Broadcast       chan *message.Message
 	Options         RoomOptions
@@ -37,7 +36,6 @@ func NewDefaultRoom(lobby *Lobby) *Room {
 		Clients:         make(map[*Client]bool),
 		JoinClientChan:  make(chan *Client),
 		LeaveClientChan: make(chan *Client),
-		theme:           "beach",
 		ID:              uuid.NewString(),
 		Broadcast:       make(chan *message.Message),
 		Options:         *defaultOptions,
@@ -51,7 +49,6 @@ func NewPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
 		Clients:         make(map[*Client]bool),
 		JoinClientChan:  make(chan *Client),
 		LeaveClientChan: make(chan *Client),
-		theme:           "beach",
 		ID:              uuid.NewString(),
 		Broadcast:       make(chan *message.Message),
 		Options:         *roomOptions,
