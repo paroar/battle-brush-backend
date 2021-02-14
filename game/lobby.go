@@ -179,10 +179,10 @@ func (lobby *Lobby) GetClients() []Client {
 func (lobby *Lobby) CreatePrivateRoom(roomOptions *RoomOptions, client *Client) *Room {
 	room := NewPrivateRoom(lobby, roomOptions)
 	go room.Run()
+	client.Room = room
 	lobby.JoinPrivateRoomChan <- room
 	lobby.LeaveClientChan <- client
 	room.JoinClientChan <- client
-	client.Room = room
 
 	return room
 }
@@ -194,9 +194,9 @@ func (lobby *Lobby) JoinPrivateRoom(room *Room, client *Client) error {
 		return errors.New("Room is full")
 	}
 
+	client.Room = room
 	lobby.LeaveClientChan <- client
 	room.JoinClientChan <- client
-	client.Room = room
 
 	return nil
 }
@@ -211,9 +211,9 @@ func (lobby *Lobby) CreateOrJoinPublicRoom(client *Client) *Room {
 		lobby.JoinPublicRoomChan <- room
 	}
 
+	client.Room = room
 	lobby.LeaveClientChan <- client
 	room.JoinClientChan <- client
-	client.Room = room
 
 	return room
 }
