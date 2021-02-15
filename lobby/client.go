@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/paroar/battle-brush-backend/generators"
-	"github.com/paroar/battle-brush-backend/message"
 )
 
 // Client struct
@@ -17,7 +16,7 @@ type Client struct {
 	Conn  *websocket.Conn
 	Lobby *Lobby
 	Room  *Room
-	Send  chan *message.Message
+	Send  chan *Message
 }
 
 // NewClient creates a Client without a Room atached
@@ -27,7 +26,7 @@ func NewClient(lobby *Lobby, conn *websocket.Conn) *Client {
 		ID:    uuid.NewString(),
 		Lobby: lobby,
 		Conn:  conn,
-		Send:  make(chan *message.Message),
+		Send:  make(chan *Message),
 	}
 }
 
@@ -49,7 +48,7 @@ func (c *Client) readPump() {
 
 	for {
 		var content json.RawMessage
-		msg := message.Message{
+		msg := &Message{
 			Content: &content,
 		}
 		err := c.Conn.ReadJSON(&msg)
@@ -58,31 +57,36 @@ func (c *Client) readPump() {
 			return
 		}
 		switch msg.Type {
-		case "Login":
-			var l message.Login
+		case TypeLogin:
+			var login Login
+			if err := json.Unmarshal(content, &login); err != nil {
+				log.Println(err)
+			}
+			if c.Room != nil {
+				c.Room.Broadcast <- msg
+			}
+		case TypeChat:
+			var chat Chat
+			if err := json.Unmarshal(content, &chat); err != nil {
+				log.Println(err)
+			}
+			c.Room.Broadcast <- msg
+		case TypeJoin:
+			var join Join
+			if err := json.Unmarshal(content, &join); err != nil {
+				log.Println(err)
+			}
+			c.Room.Broadcast <- msg
+		case TypeLeave:
+			var l Leave
 			if err := json.Unmarshal(content, &l); err != nil {
 				log.Println(err)
 			}
-		case "Chat":
-			var c message.Chat
-			if err := json.Unmarshal(content, &c); err != nil {
-				log.Println(err)
-			}
-		case "Join":
-			var j message.Join
-			if err := json.Unmarshal(content, &j); err != nil {
-				log.Println(err)
-			}
-		case "Leave":
-			var l message.Leave
-			if err := json.Unmarshal(content, &l); err != nil {
-				log.Println(err)
-			}
+			c.Room.Broadcast <- msg
+		case TypeStartGame:
+			c.Room.Game.StateChan <- StatusRunning
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
-		}
-		if c.Room != nil {
-			c.Room.Broadcast <- &msg
 		}
 	}
 }

@@ -2,7 +2,6 @@ package lobby
 
 import (
 	"github.com/google/uuid"
-	"github.com/paroar/battle-brush-backend/message"
 )
 
 // Room struct
@@ -12,33 +11,32 @@ type Room struct {
 	JoinClientChan  chan *Client
 	LeaveClientChan chan *Client
 	ID              string
-	Broadcast       chan *message.Message
+	Broadcast       chan *Message
 	Options         RoomOptions
+	Game            *DrawGame
 }
 
 // RoomOptions struct
 type RoomOptions struct {
 	NumPlayers int
-	Time       int
-	Rounds     int
 }
 
 var defaultOptions = &RoomOptions{
 	NumPlayers: 5,
-	Time:       90,
-	Rounds:     3,
 }
 
 // NewDefaultRoom creates a Room
 func NewDefaultRoom(lobby *Lobby) *Room {
+	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,
-		Clients:         make(map[*Client]bool),
+		Clients:         clients,
 		JoinClientChan:  make(chan *Client),
 		LeaveClientChan: make(chan *Client),
 		ID:              uuid.NewString(),
-		Broadcast:       make(chan *message.Message),
+		Broadcast:       make(chan *Message),
 		Options:         *defaultOptions,
+		Game:            NewDrawGame(clients),
 	}
 }
 
@@ -50,7 +48,7 @@ func NewPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
 		JoinClientChan:  make(chan *Client),
 		LeaveClientChan: make(chan *Client),
 		ID:              uuid.NewString(),
-		Broadcast:       make(chan *message.Message),
+		Broadcast:       make(chan *Message),
 		Options:         *roomOptions,
 	}
 }
@@ -71,18 +69,18 @@ func (room *Room) Run() {
 
 func (room *Room) joinClient(c *Client) {
 	room.Clients[c] = true
-	_msg := &message.Message{
-		Type: message.TypeJoin,
-		Content: message.Join{
+	_msg := &Message{
+		Type: TypeJoin,
+		Content: Join{
 			UserName: c.Name,
 			ID:       c.ID,
 		},
 	}
 	room.broadcastTo(_msg)
 
-	_msg = &message.Message{
-		Type: message.TypePlayers,
-		Content: message.Players{
+	_msg = &Message{
+		Type: TypePlayers,
+		Content: Players{
 			UserNames: room.getUserNames(),
 		},
 	}
@@ -92,17 +90,17 @@ func (room *Room) joinClient(c *Client) {
 func (room *Room) leaveClient(c *Client) {
 	if _, ok := room.Clients[c]; ok {
 		delete(room.Clients, c)
-		_msg := &message.Message{
-			Type: message.TypeLeave,
-			Content: message.Leave{
+		_msg := &Message{
+			Type: TypeLeave,
+			Content: Leave{
 				UserName: c.Name,
 				ID:       c.ID,
 			},
 		}
 		room.broadcastTo(_msg)
-		_msg = &message.Message{
-			Type: message.TypePlayers,
-			Content: message.Players{
+		_msg = &Message{
+			Type: TypePlayers,
+			Content: Players{
 				UserNames: room.getUserNames(),
 			},
 		}
@@ -110,7 +108,7 @@ func (room *Room) leaveClient(c *Client) {
 	}
 }
 
-func (room *Room) broadcastTo(msg *message.Message) {
+func (room *Room) broadcastTo(msg *Message) {
 	for client := range room.Clients {
 		client.Send <- msg
 	}

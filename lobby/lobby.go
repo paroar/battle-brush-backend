@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/paroar/battle-brush-backend/message"
 )
 
 var upgrader = websocket.Upgrader{
@@ -27,7 +26,7 @@ type Lobby struct {
 	LeavePublicRoomChan  chan *Room
 	JoinPrivateRoomChan  chan *Room
 	LeavePrivateRoomChan chan *Room
-	broadcast            chan *message.Message
+	broadcast            chan *Message
 }
 
 // NewLobby creates a Lobby
@@ -41,7 +40,7 @@ func NewLobby() *Lobby {
 		LeavePublicRoomChan:  make(chan *Room),
 		JoinPrivateRoomChan:  make(chan *Room),
 		LeavePrivateRoomChan: make(chan *Room),
-		broadcast:            make(chan *message.Message),
+		broadcast:            make(chan *Message),
 	}
 }
 
@@ -59,9 +58,9 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 	go client.writePump()
 
-	_msg := &message.Message{
-		Type: message.TypeLogin,
-		Content: message.Login{
+	_msg := &Message{
+		Type: TypeLogin,
+		Content: Login{
 			UserName: client.Name,
 			ID:       client.ID,
 		},
@@ -123,7 +122,7 @@ func (lobby *Lobby) leavePrivateRoom(r *Room) {
 	}
 }
 
-func (lobby *Lobby) broadcastTo(msg *message.Message) {
+func (lobby *Lobby) broadcastTo(msg *Message) {
 	for client := range lobby.clients {
 		client.Send <- msg
 	}
@@ -208,6 +207,7 @@ func (lobby *Lobby) CreateOrJoinPublicRoom(client *Client) *Room {
 	if room == nil {
 		room = NewDefaultRoom(lobby)
 		go room.Run()
+		go room.Game.Run()
 		lobby.JoinPublicRoomChan <- room
 	}
 

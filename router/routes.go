@@ -25,8 +25,6 @@ func CreatePrivateRoom(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) 
 
 	roomOptions := &lobby.RoomOptions{
 		NumPlayers: _roomJSON.NumPlayers,
-		Time:       _roomJSON.Time,
-		Rounds:     _roomJSON.Rounds,
 	}
 
 	client, err := l.GetClient(_roomJSON.ID)
