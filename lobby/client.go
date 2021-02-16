@@ -34,9 +34,9 @@ func (c *Client) writePump() {
 	defer c.disconnect()
 
 	for {
-		_msg := <-c.Send
+		msg := <-c.Send
 
-		err := c.Conn.WriteJSON(_msg)
+		err := c.Conn.WriteJSON(msg)
 		if err != nil {
 			log.Println(err)
 		}
@@ -57,13 +57,13 @@ func (c *Client) readPump() {
 			return
 		}
 		switch msg.Type {
-		case TypeLogin:
-			var login Login
-			if err := json.Unmarshal(content, &login); err != nil {
+		case TypeGameState:
+			var gameState GameState
+			if err := json.Unmarshal(content, &gameState); err != nil {
 				log.Println(err)
 			}
-			if c.Room != nil {
-				c.Room.Broadcast <- msg
+			if gameState.Command == StateStart {
+				go c.Room.Game.StartGame()
 			}
 		case TypeChat:
 			var chat Chat
@@ -71,20 +71,20 @@ func (c *Client) readPump() {
 				log.Println(err)
 			}
 			c.Room.Broadcast <- msg
-		case TypeJoin:
-			var join Join
-			if err := json.Unmarshal(content, &join); err != nil {
+		case TypeImage:
+			var img Image
+			if err := json.Unmarshal(content, &img); err != nil {
 				log.Println(err)
 			}
-			c.Room.Broadcast <- msg
-		case TypeLeave:
-			var l Leave
-			if err := json.Unmarshal(content, &l); err != nil {
+			client, err := c.Room.getClient(img.UserID)
+			if err != nil {
 				log.Println(err)
 			}
-			c.Room.Broadcast <- msg
-		case TypeStartGame:
-			c.Room.Game.StateChan <- StatusRunning
+			drawing := &Drawing{
+				Client: client,
+				Img:    img.Img,
+			}
+			c.Room.Game.drawChan <- drawing
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}

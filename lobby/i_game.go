@@ -7,8 +7,10 @@ type IGame interface {
 
 // Game statuses
 const (
-	StatusWaiting = "Waiting"
-	StatusRunning = "Running"
-	StatusVoting  = "Voting"
-	StatusEnd     = "End"
+	StatusWaiting     = "Waiting"
+	StatusDrawing     = "Drawing"
+	StatusRecolecting = "Recolecting"
+	StatusRunning     = "Running"
+	StatusVoting      = "Voting"
+	StatusEnd         = "End"
 )

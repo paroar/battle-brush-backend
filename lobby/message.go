@@ -1,10 +1,5 @@
 package lobby
 
-// IContent interface
-type IContent interface {
-	NewContent() IContent
-}
-
 // Message struct for websockets messages
 type Message struct {
 	Type    string      `json:"type"`
@@ -13,47 +8,54 @@ type Message struct {
 
 // Login struct
 type Login struct {
-	UserName string `json:"userName"`
+	UserName string `json:"username"`
 	ID       string `json:"userid"`
 }
 
-// Join struct
-type Join struct {
-	UserName string `json:"userName"`
+// JoinLeave struct
+type JoinLeave struct {
+	UserName string `json:"username"`
 	ID       string `json:"userid"`
-}
-
-// Leave struct
-type Leave struct {
-	UserName string `json:"userName"`
-	ID       string `json:"userid"`
+	Msg      string `json:"msg"`
 }
 
 // Chat struct
 type Chat struct {
-	Name string `json:"userName"`
+	Name string `json:"username"`
 	Msg  string `json:"msg"`
 }
 
 // Players struct
 type Players struct {
-	UserNames []string `json:"userNames"`
+	UserNames []string `json:"usernames"`
 }
 
 // GameState struct
 type GameState struct {
-	State string `json:"gameState"`
+	State   string `json:"gameState"`
+	Command string `json:"command"`
+}
+
+// Image struct
+type Image struct {
+	UserID string `json:"userid"`
+	Img    string `json:"img"`
 }
 
 // Common Message types
 const (
 	TypeLogin     = "Login"
-	TypeLogout    = "Logout"
-	TypeJoin      = "Join"
-	TypeLeave     = "Leave"
+	TypeJoinLeave = "JoinLeave"
 	TypeChat      = "Chat"
-	TypeVote      = "Vote"
 	TypePlayers   = "Players"
-	TypeStartGame = "StartGame"
 	TypeGameState = "GameState"
+	TypeImage     = "Image"
+)
+
+// Common Game states
+const (
+	StateDrawing     = "Drawing"
+	StateVoting      = "Voting"
+	StateRecolecting = "Recolecting"
+	StateStart       = "Start"
 )

@@ -1,6 +1,9 @@
 package lobby
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -70,10 +73,11 @@ func (room *Room) Run() {
 func (room *Room) joinClient(c *Client) {
 	room.Clients[c] = true
 	_msg := &Message{
-		Type: TypeJoin,
-		Content: Join{
+		Type: TypeJoinLeave,
+		Content: JoinLeave{
 			UserName: c.Name,
 			ID:       c.ID,
+			Msg:      fmt.Sprintf("%s has joined", c.Name),
 		},
 	}
 	room.broadcastTo(_msg)
@@ -91,10 +95,11 @@ func (room *Room) leaveClient(c *Client) {
 	if _, ok := room.Clients[c]; ok {
 		delete(room.Clients, c)
 		_msg := &Message{
-			Type: TypeLeave,
-			Content: Leave{
+			Type: TypeJoinLeave,
+			Content: JoinLeave{
 				UserName: c.Name,
 				ID:       c.ID,
+				Msg:      fmt.Sprintf("%s has left", c.Name),
 			},
 		}
 		room.broadcastTo(_msg)
@@ -112,6 +117,15 @@ func (room *Room) broadcastTo(msg *Message) {
 	for client := range room.Clients {
 		client.Send <- msg
 	}
+}
+
+func (room *Room) getClient(userid string) (*Client, error) {
+	for client := range room.Clients {
+		if client.ID == userid {
+			return client, nil
+		}
+	}
+	return nil, errors.New("Client not found")
 }
 
 func (room *Room) getUserNames() []string {
