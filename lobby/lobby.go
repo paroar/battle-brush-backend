@@ -19,13 +19,13 @@ var upgrader = websocket.Upgrader{
 // Lobby is the main struct that manages rooms and clients
 type Lobby struct {
 	clients              map[*Client]bool
-	JoinClientChan       chan *Client
-	LeaveClientChan      chan *Client
+	joinClientChan       chan *Client
+	leaveClientChan      chan *Client
 	rooms                *Rooms
-	JoinPublicRoomChan   chan *Room
-	LeavePublicRoomChan  chan *Room
-	JoinPrivateRoomChan  chan *Room
-	LeavePrivateRoomChan chan *Room
+	joinPublicRoomChan   chan *Room
+	leavePublicRoomChan  chan *Room
+	joinPrivateRoomChan  chan *Room
+	leavePrivateRoomChan chan *Room
 	broadcast            chan *Message
 }
 
@@ -33,13 +33,13 @@ type Lobby struct {
 func NewLobby() *Lobby {
 	return &Lobby{
 		clients:              make(map[*Client]bool),
-		JoinClientChan:       make(chan *Client),
-		LeaveClientChan:      make(chan *Client),
+		joinClientChan:       make(chan *Client),
+		leaveClientChan:      make(chan *Client),
 		rooms:                NewRooms(),
-		JoinPublicRoomChan:   make(chan *Room),
-		LeavePublicRoomChan:  make(chan *Room),
-		JoinPrivateRoomChan:  make(chan *Room),
-		LeavePrivateRoomChan: make(chan *Room),
+		joinPublicRoomChan:   make(chan *Room),
+		leavePublicRoomChan:  make(chan *Room),
+		joinPrivateRoomChan:  make(chan *Room),
+		leavePrivateRoomChan: make(chan *Room),
 		broadcast:            make(chan *Message),
 	}
 }
@@ -51,9 +51,9 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := NewClient(lobby, conn)
+	client := newClient(lobby, conn)
 
-	lobby.JoinClientChan <- client
+	lobby.joinClientChan <- client
 
 	go client.readPump()
 	go client.writePump()
@@ -61,12 +61,12 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	_msg := &Message{
 		Type: TypeLogin,
 		Content: Login{
-			UserName: client.Name,
-			ID:       client.ID,
+			UserName: client.name,
+			ID:       client.id,
 		},
 	}
 
-	client.Send <- _msg
+	client.send <- _msg
 
 }
 
@@ -74,17 +74,17 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 func (lobby *Lobby) Run() {
 	for {
 		select {
-		case client := <-lobby.JoinClientChan:
+		case client := <-lobby.joinClientChan:
 			lobby.joinClient(client)
-		case client := <-lobby.LeaveClientChan:
+		case client := <-lobby.leaveClientChan:
 			lobby.leaveClient(client)
-		case room := <-lobby.JoinPublicRoomChan:
+		case room := <-lobby.joinPublicRoomChan:
 			lobby.joinPublicRoom(room)
-		case room := <-lobby.LeavePublicRoomChan:
+		case room := <-lobby.leavePublicRoomChan:
 			lobby.leavePublicRoom(room)
-		case room := <-lobby.JoinPrivateRoomChan:
+		case room := <-lobby.joinPrivateRoomChan:
 			lobby.joinPrivateRoom(room)
-		case room := <-lobby.LeavePrivateRoomChan:
+		case room := <-lobby.leavePrivateRoomChan:
 			lobby.leavePrivateRoom(room)
 		case msg := <-lobby.broadcast:
 			lobby.broadcastTo(msg)
@@ -124,27 +124,18 @@ func (lobby *Lobby) leavePrivateRoom(r *Room) {
 
 func (lobby *Lobby) broadcastTo(msg *Message) {
 	for client := range lobby.clients {
-		client.Send <- msg
+		client.send <- msg
 	}
 }
 
 // GetClient returns the Client if found or Error
 func (lobby *Lobby) GetClient(id string) (*Client, error) {
 	for client := range lobby.clients {
-		if client.ID == id {
+		if client.id == id {
 			return client, nil
 		}
 	}
 	return nil, errors.New("Client not found")
-}
-
-// GetPublicRoom returns the Room if found or Error
-func (lobby *Lobby) GetPublicRoom(id string) (*Room, error) {
-	room, err := lobby.rooms.GetPublicRoom(id)
-	if err != nil {
-		return nil, err
-	}
-	return room, nil
 }
 
 // GetPrivateRoom returns the Room if found or Error
@@ -156,32 +147,15 @@ func (lobby *Lobby) GetPrivateRoom(id string) (*Room, error) {
 	return room, nil
 }
 
-// GetPublicRooms returns all Rooms in the lobby
-func (lobby *Lobby) GetPublicRooms() []Room {
-	var rooms = []Room{}
-	for room := range lobby.rooms.publicRooms {
-		rooms = append(rooms, *room)
-	}
-	return rooms
-}
-
-// GetClients returns all Clients in the lobby
-func (lobby *Lobby) GetClients() []Client {
-	var clients = []Client{}
-	for client := range lobby.clients {
-		clients = append(clients, *client)
-	}
-	return clients
-}
-
 // CreatePrivateRoom creates the Room
 func (lobby *Lobby) CreatePrivateRoom(roomOptions *RoomOptions, client *Client) *Room {
-	room := NewPrivateRoom(lobby, roomOptions)
-	go room.Run()
-	client.Room = room
-	lobby.JoinPrivateRoomChan <- room
-	lobby.LeaveClientChan <- client
-	room.JoinClientChan <- client
+	room := newPrivateRoom(lobby, roomOptions)
+	go room.run()
+	go room.game.run()
+	client.room = room
+	lobby.joinPrivateRoomChan <- room
+	lobby.leaveClientChan <- client
+	room.joinClientChan <- client
 
 	return room
 }
@@ -189,13 +163,13 @@ func (lobby *Lobby) CreatePrivateRoom(roomOptions *RoomOptions, client *Client) 
 // JoinPrivateRoom returns an error if the Room is full or joins the Room
 func (lobby *Lobby) JoinPrivateRoom(room *Room, client *Client) error {
 
-	if room.isFull() {
+	if room.isAvailable() {
 		return errors.New("Room is full")
 	}
 
-	client.Room = room
-	lobby.LeaveClientChan <- client
-	room.JoinClientChan <- client
+	client.room = room
+	lobby.leaveClientChan <- client
+	room.joinClientChan <- client
 
 	return nil
 }
@@ -203,27 +177,38 @@ func (lobby *Lobby) JoinPrivateRoom(room *Room, client *Client) error {
 // CreateOrJoinPublicRoom creates a Room if there are no available
 // public Rooms or joins a Room if there is one available
 func (lobby *Lobby) CreateOrJoinPublicRoom(client *Client) *Room {
-	room := lobby.AvailablePublicRooms()
+	room := lobby.firstAvailablePublicRoom()
 	if room == nil {
-		room = NewDefaultRoom(lobby)
-		go room.Run()
-		go room.Game.Run()
-		lobby.JoinPublicRoomChan <- room
+		room = newDefaultRoom(lobby)
+		go room.run()
+		go room.game.run()
+		lobby.joinPublicRoomChan <- room
 	}
 
-	client.Room = room
-	lobby.LeaveClientChan <- client
-	room.JoinClientChan <- client
+	client.room = room
+	lobby.leaveClientChan <- client
+	room.joinClientChan <- client
 
 	return room
 }
 
-// AvailablePublicRooms returns an available public Room if there is one
-func (lobby *Lobby) AvailablePublicRooms() *Room {
+// firstAvailablePublicRooms returns an available public Room if there is one
+func (lobby *Lobby) firstAvailablePublicRoom() *Room {
 	for room := range lobby.rooms.publicRooms {
-		if len(room.Clients) <= room.Options.NumPlayers {
+		if room.game.state == StateWaiting && len(room.clients) <= room.options.NumPlayers {
 			return room
 		}
 	}
 	return nil
+}
+
+// AvailableRooms returns all available Rooms
+func (lobby *Lobby) availableRooms(rooms []*Room) []*Room {
+	availableRooms := []*Room{}
+	for _, room := range rooms {
+		if room.game.state == StateWaiting && len(room.clients) <= room.options.NumPlayers {
+			availableRooms = append(availableRooms, room)
+		}
+	}
+	return availableRooms
 }

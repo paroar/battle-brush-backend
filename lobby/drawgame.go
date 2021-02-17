@@ -25,9 +25,8 @@ type Options struct {
 }
 
 var defaultGameOptions = &Options{
-	DrawTime:   5,
+	DrawTime:   10,
 	VotingTime: 5,
-	Rounds:     1,
 }
 
 // Drawing struct
@@ -36,11 +35,11 @@ type Drawing struct {
 	Img    string
 }
 
-// NewDrawGame constructor
-func NewDrawGame(players map[*Client]bool) *DrawGame {
+// newDrawGame constructor
+func newDrawGame(players map[*Client]bool) *DrawGame {
 	return &DrawGame{
 		theme:       "",
-		state:       StatusWaiting,
+		state:       StateWaiting,
 		drawings:    make(map[*Client]string),
 		StateChan:   make(chan string),
 		drawChan:    make(chan *Drawing, 10),
@@ -50,8 +49,8 @@ func NewDrawGame(players map[*Client]bool) *DrawGame {
 	}
 }
 
-// Run gets the game going
-func (d *DrawGame) Run() {
+// run gets the game going
+func (d *DrawGame) run() {
 	for {
 		select {
 		case state := <-d.StateChan:
@@ -78,23 +77,19 @@ func (d *DrawGame) changeState(state string) {
 
 func (d *DrawGame) broadcast(msg *Message) {
 	for player := range d.players {
-		player.Send <- msg
+		player.send <- msg
 	}
 }
 
-// StartGame starts the game process
-func (d *DrawGame) StartGame() {
-	d.drawings = map[*Client]string{}
-	var rounds = d.gameOptions.Rounds
-	for rounds > 0 {
-		d.changeState(StatusDrawing)
-		time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
-		d.changeState(StatusRecolecting)
-		time.Sleep(time.Second)
-		d.broadcastImages()
-		rounds--
-	}
-	d.changeState(StatusWaiting)
+// startGame starts the game process
+func (d *DrawGame) startGame() {
+	d.drawings = make(map[*Client]string, len(d.players))
+	d.changeState(StateDrawing)
+	time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
+	d.changeState(StateRecolecting)
+	time.Sleep(time.Second)
+	d.broadcastImages()
+	d.changeState(StateWaiting)
 }
 
 func (d *DrawGame) addDrawing(drawing *Drawing) {
@@ -102,16 +97,16 @@ func (d *DrawGame) addDrawing(drawing *Drawing) {
 }
 
 func (d *DrawGame) broadcastImages() {
-	d.changeState(StatusVoting)
+	d.changeState(StateVoting)
 	for client := range d.drawings {
 		msg := &Message{
 			Type: TypeImage,
 			Content: Image{
-				UserID: client.ID,
+				UserID: client.id,
 				Img:    d.drawings[client],
 			},
 		}
 		d.broadcast(msg)
-		time.Sleep(2 * time.Second)
+		time.Sleep(time.Duration(defaultGameOptions.VotingTime) * time.Second)
 	}
 }

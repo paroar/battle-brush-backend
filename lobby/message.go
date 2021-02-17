@@ -58,4 +58,5 @@ const (
 	StateVoting      = "Voting"
 	StateRecolecting = "Recolecting"
 	StateStart       = "Start"
+	StateWaiting     = "Waiting"
 )

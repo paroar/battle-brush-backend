@@ -11,22 +11,22 @@ import (
 
 // Client struct
 type Client struct {
-	Name  string
-	ID    string
-	Conn  *websocket.Conn
-	Lobby *Lobby
-	Room  *Room
-	Send  chan *Message
+	name  string
+	id    string
+	conn  *websocket.Conn
+	lobby *Lobby
+	room  *Room
+	send  chan *Message
 }
 
-// NewClient creates a Client without a Room atached
-func NewClient(lobby *Lobby, conn *websocket.Conn) *Client {
+// newClient creates a Client without a Room atached
+func newClient(lobby *Lobby, conn *websocket.Conn) *Client {
 	return &Client{
-		Name:  generators.Name(),
-		ID:    uuid.NewString(),
-		Lobby: lobby,
-		Conn:  conn,
-		Send:  make(chan *Message),
+		name:  generators.Name(),
+		id:    uuid.NewString(),
+		lobby: lobby,
+		conn:  conn,
+		send:  make(chan *Message),
 	}
 }
 
@@ -34,9 +34,9 @@ func (c *Client) writePump() {
 	defer c.disconnect()
 
 	for {
-		msg := <-c.Send
+		msg := <-c.send
 
-		err := c.Conn.WriteJSON(msg)
+		err := c.conn.WriteJSON(msg)
 		if err != nil {
 			log.Println(err)
 		}
@@ -51,7 +51,7 @@ func (c *Client) readPump() {
 		msg := &Message{
 			Content: &content,
 		}
-		err := c.Conn.ReadJSON(&msg)
+		err := c.conn.ReadJSON(&msg)
 		if err != nil {
 			log.Println(err)
 			return
@@ -63,20 +63,20 @@ func (c *Client) readPump() {
 				log.Println(err)
 			}
 			if gameState.Command == StateStart {
-				go c.Room.Game.StartGame()
+				go c.room.game.startGame()
 			}
 		case TypeChat:
 			var chat Chat
 			if err := json.Unmarshal(content, &chat); err != nil {
 				log.Println(err)
 			}
-			c.Room.Broadcast <- msg
+			c.room.broadcast <- msg
 		case TypeImage:
 			var img Image
 			if err := json.Unmarshal(content, &img); err != nil {
 				log.Println(err)
 			}
-			client, err := c.Room.getClient(img.UserID)
+			client, err := c.room.getClient(img.UserID)
 			if err != nil {
 				log.Println(err)
 			}
@@ -84,7 +84,7 @@ func (c *Client) readPump() {
 				Client: client,
 				Img:    img.Img,
 			}
-			c.Room.Game.drawChan <- drawing
+			c.room.game.drawChan <- drawing
 		default:
 			log.Printf("unknown message type: %s", msg.Type)
 		}
@@ -92,9 +92,9 @@ func (c *Client) readPump() {
 }
 
 func (c *Client) disconnect() {
-	if c.Room != nil {
-		c.Room.LeaveClientChan <- c
+	if c.room != nil {
+		c.room.leaveClientChan <- c
 	}
-	c.Lobby.LeaveClientChan <- c
-	c.Conn.Close()
+	c.lobby.leaveClientChan <- c
+	c.conn.Close()
 }

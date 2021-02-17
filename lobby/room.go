@@ -10,13 +10,13 @@ import (
 // Room struct
 type Room struct {
 	lobby           *Lobby
-	Clients         map[*Client]bool
-	JoinClientChan  chan *Client
-	LeaveClientChan chan *Client
+	clients         map[*Client]bool
+	joinClientChan  chan *Client
+	leaveClientChan chan *Client
 	ID              string
-	Broadcast       chan *Message
-	Options         RoomOptions
-	Game            *DrawGame
+	broadcast       chan *Message
+	options         RoomOptions
+	game            *DrawGame
 }
 
 // RoomOptions struct
@@ -28,56 +28,58 @@ var defaultOptions = &RoomOptions{
 	NumPlayers: 5,
 }
 
-// NewDefaultRoom creates a Room
-func NewDefaultRoom(lobby *Lobby) *Room {
+// newDefaultRoom creates a Room
+func newDefaultRoom(lobby *Lobby) *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,
-		Clients:         clients,
-		JoinClientChan:  make(chan *Client),
-		LeaveClientChan: make(chan *Client),
+		clients:         clients,
+		joinClientChan:  make(chan *Client),
+		leaveClientChan: make(chan *Client),
 		ID:              uuid.NewString(),
-		Broadcast:       make(chan *Message),
-		Options:         *defaultOptions,
-		Game:            NewDrawGame(clients),
+		broadcast:       make(chan *Message),
+		options:         *defaultOptions,
+		game:            newDrawGame(clients),
 	}
 }
 
-// NewPrivateRoom creates a Room
-func NewPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
+// newPrivateRoom creates a Room
+func newPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
+	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,
-		Clients:         make(map[*Client]bool),
-		JoinClientChan:  make(chan *Client),
-		LeaveClientChan: make(chan *Client),
+		clients:         clients,
+		joinClientChan:  make(chan *Client),
+		leaveClientChan: make(chan *Client),
 		ID:              uuid.NewString(),
-		Broadcast:       make(chan *Message),
-		Options:         *roomOptions,
+		broadcast:       make(chan *Message),
+		options:         *defaultOptions,
+		game:            newDrawGame(clients),
 	}
 }
 
-// Run runs the Room
-func (room *Room) Run() {
+// run runs the Room
+func (room *Room) run() {
 	for {
 		select {
-		case client := <-room.JoinClientChan:
+		case client := <-room.joinClientChan:
 			room.joinClient(client)
-		case client := <-room.LeaveClientChan:
+		case client := <-room.leaveClientChan:
 			room.leaveClient(client)
-		case msg := <-room.Broadcast:
+		case msg := <-room.broadcast:
 			room.broadcastTo(msg)
 		}
 	}
 }
 
 func (room *Room) joinClient(c *Client) {
-	room.Clients[c] = true
+	room.clients[c] = true
 	_msg := &Message{
 		Type: TypeJoinLeave,
 		Content: JoinLeave{
-			UserName: c.Name,
-			ID:       c.ID,
-			Msg:      fmt.Sprintf("%s has joined", c.Name),
+			UserName: c.name,
+			ID:       c.id,
+			Msg:      fmt.Sprintf("%s has joined", c.name),
 		},
 	}
 	room.broadcastTo(_msg)
@@ -92,14 +94,14 @@ func (room *Room) joinClient(c *Client) {
 }
 
 func (room *Room) leaveClient(c *Client) {
-	if _, ok := room.Clients[c]; ok {
-		delete(room.Clients, c)
+	if _, ok := room.clients[c]; ok {
+		delete(room.clients, c)
 		_msg := &Message{
 			Type: TypeJoinLeave,
 			Content: JoinLeave{
-				UserName: c.Name,
-				ID:       c.ID,
-				Msg:      fmt.Sprintf("%s has left", c.Name),
+				UserName: c.name,
+				ID:       c.id,
+				Msg:      fmt.Sprintf("%s has left", c.name),
 			},
 		}
 		room.broadcastTo(_msg)
@@ -114,14 +116,14 @@ func (room *Room) leaveClient(c *Client) {
 }
 
 func (room *Room) broadcastTo(msg *Message) {
-	for client := range room.Clients {
-		client.Send <- msg
+	for client := range room.clients {
+		client.send <- msg
 	}
 }
 
 func (room *Room) getClient(userid string) (*Client, error) {
-	for client := range room.Clients {
-		if client.ID == userid {
+	for client := range room.clients {
+		if client.id == userid {
 			return client, nil
 		}
 	}
@@ -130,21 +132,12 @@ func (room *Room) getClient(userid string) (*Client, error) {
 
 func (room *Room) getUserNames() []string {
 	var userNames []string
-	for client := range room.Clients {
-		userNames = append(userNames, client.Name)
+	for client := range room.clients {
+		userNames = append(userNames, client.name)
 	}
 	return userNames
 }
 
-// GetRoomClients returns all Clients in the Room
-func GetRoomClients(room *Room) []Client {
-	var clients = []Client{}
-	for client := range room.Clients {
-		clients = append(clients, *client)
-	}
-	return clients
-}
-
-func (room *Room) isFull() bool {
-	return len(room.Clients) >= room.Options.NumPlayers
+func (room *Room) isAvailable() bool {
+	return room.game.state == StateWaiting && len(room.clients) >= room.options.NumPlayers
 }

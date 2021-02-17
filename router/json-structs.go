@@ -1,16 +1,5 @@
 package router
 
-// LobbyRoomsJSON json structure
-type LobbyRoomsJSON struct {
-	Rooms []LobbyRoomJSON `json:"rooms"`
-}
-
-// LobbyRoomJSON json structure
-type LobbyRoomJSON struct {
-	ID      string   `json:"id"`
-	Clients []string `json:"clients"`
-}
-
 // RoomIDJSON json structure of room id
 type RoomIDJSON struct {
 	ID string `json:"roomid"`
@@ -33,9 +22,4 @@ type RoomJSON struct {
 type JoinRoomJSON struct {
 	RoomID   string `json:"roomid"`
 	ClientID string `json:"userid"`
-}
-
-// ClientsIDJSON json structure of Clients ID
-type ClientsIDJSON struct {
-	ClientsID []string
 }
