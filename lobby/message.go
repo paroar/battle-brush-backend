@@ -59,4 +59,5 @@ const (
 	StateRecolecting = "Recolecting"
 	StateStart       = "Start"
 	StateWaiting     = "Waiting"
+	StateLoading     = "Loading"
 )

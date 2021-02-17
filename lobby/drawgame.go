@@ -99,7 +99,6 @@ func (d *DrawGame) addDrawing(drawing *Drawing) {
 }
 
 func (d *DrawGame) broadcastImages() {
-	d.changeState(StateVoting)
 	for client := range d.drawings {
 		msg := &Message{
 			Type: TypeImage,
@@ -109,6 +108,9 @@ func (d *DrawGame) broadcastImages() {
 			},
 		}
 		d.broadcast(msg)
+		d.changeState(StateVoting)
 		time.Sleep(time.Duration(defaultGameOptions.VotingTime) * time.Second)
+		d.changeState(StateLoading)
+		time.Sleep(time.Second)
 	}
 }
