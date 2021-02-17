@@ -3,6 +3,8 @@ package lobby
 import (
 	"log"
 	"time"
+
+	"github.com/paroar/battle-brush-backend/generators"
 )
 
 // DrawGame game
@@ -38,7 +40,6 @@ type Drawing struct {
 // newDrawGame constructor
 func newDrawGame(players map[*Client]bool) *DrawGame {
 	return &DrawGame{
-		theme:       "",
 		state:       StateWaiting,
 		drawings:    make(map[*Client]string),
 		StateChan:   make(chan string),
@@ -83,6 +84,7 @@ func (d *DrawGame) broadcast(msg *Message) {
 
 // startGame starts the game process
 func (d *DrawGame) startGame() {
+	d.theme = generators.Theme()
 	d.drawings = make(map[*Client]string, len(d.players))
 	d.changeState(StateDrawing)
 	time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
