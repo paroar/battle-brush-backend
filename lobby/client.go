@@ -71,6 +71,12 @@ func (c *Client) readPump() {
 				log.Println(err)
 			}
 			c.room.broadcast <- msg
+		case TypeVote:
+			var vote Vote
+			if err := json.Unmarshal(content, &vote); err != nil {
+				log.Println(err)
+			}
+			c.room.game.votingChan <- &vote
 		case TypeImage:
 			var img Image
 			if err := json.Unmarshal(content, &img); err != nil {

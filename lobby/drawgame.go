@@ -1,6 +1,7 @@
 package lobby
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -11,11 +12,12 @@ import (
 type DrawGame struct {
 	players     map[*Client]bool
 	drawings    map[*Client]string
+	votes       map[*Client][]float64
 	theme       string
 	state       string
-	StateChan   chan string
+	stateChan   chan string
 	drawChan    chan *Drawing
-	votingChan  chan int
+	votingChan  chan *Vote
 	gameOptions Options
 }
 
@@ -28,7 +30,7 @@ type Options struct {
 
 var defaultGameOptions = &Options{
 	DrawTime:   10,
-	VotingTime: 5,
+	VotingTime: 10,
 }
 
 // Drawing struct
@@ -42,9 +44,10 @@ func newDrawGame(players map[*Client]bool) *DrawGame {
 	return &DrawGame{
 		state:       StateWaiting,
 		drawings:    make(map[*Client]string),
-		StateChan:   make(chan string),
+		votes:       make(map[*Client][]float64),
+		stateChan:   make(chan string),
 		drawChan:    make(chan *Drawing, 10),
-		votingChan:  make(chan int),
+		votingChan:  make(chan *Vote),
 		gameOptions: *defaultGameOptions,
 		players:     players,
 	}
@@ -54,12 +57,12 @@ func newDrawGame(players map[*Client]bool) *DrawGame {
 func (d *DrawGame) run() {
 	for {
 		select {
-		case state := <-d.StateChan:
+		case state := <-d.stateChan:
 			d.changeState(state)
 		case draw := <-d.drawChan:
 			d.addDrawing(draw)
 		case vote := <-d.votingChan:
-			log.Println(vote)
+			d.addVote(vote)
 		}
 	}
 }
@@ -85,17 +88,43 @@ func (d *DrawGame) broadcast(msg *Message) {
 // startGame starts the game process
 func (d *DrawGame) startGame() {
 	d.theme = generators.Theme()
+	theme := &Message{
+		Type: TypeTheme,
+		Content: Theme{
+			Theme: d.theme,
+		},
+	}
+	d.broadcast(theme)
 	d.drawings = make(map[*Client]string, len(d.players))
 	d.changeState(StateDrawing)
 	time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
 	d.changeState(StateRecolecting)
 	time.Sleep(time.Second)
 	d.broadcastImages()
+	d.winner()
 	d.changeState(StateWaiting)
 }
 
 func (d *DrawGame) addDrawing(drawing *Drawing) {
 	d.drawings[drawing.Client] = drawing.Img
+}
+
+func (d *DrawGame) addVote(vote *Vote) {
+	client, err := d.getPlayer(vote.UserID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	d.votes[client] = append(d.votes[client], vote.Vote)
+}
+
+func (d *DrawGame) getPlayer(userid string) (*Client, error) {
+	for player := range d.players {
+		if userid == player.id {
+			return player, nil
+		}
+	}
+	return nil, errors.New("Player not found")
 }
 
 func (d *DrawGame) broadcastImages() {
@@ -110,7 +139,45 @@ func (d *DrawGame) broadcastImages() {
 		d.broadcast(msg)
 		d.changeState(StateVoting)
 		time.Sleep(time.Duration(defaultGameOptions.VotingTime) * time.Second)
-		d.changeState(StateLoading)
+		d.changeState(StateRecolectingVotes)
 		time.Sleep(time.Second)
+		d.changeState(StateLoading)
 	}
+}
+
+func (d *DrawGame) winner() {
+	var scores = make(map[*Client]float64)
+	for player, votes := range d.votes {
+		avg := d.averageVotes(votes)
+		scores[player] = avg
+	}
+
+	var playerWinner *Client
+	var maxScore = 0.0
+	for player, score := range scores {
+		if score > maxScore {
+			maxScore = score
+			playerWinner = player
+		}
+	}
+
+	msg := &Message{
+		Type: TypeWinner,
+		Content: Image{
+			Img:      d.drawings[playerWinner],
+			UserID:   playerWinner.id,
+			UserName: playerWinner.name,
+		},
+	}
+	d.broadcast(msg)
+	d.changeState(StateWinner)
+	time.Sleep(10 * time.Second)
+}
+
+func (d *DrawGame) averageVotes(votes []float64) float64 {
+	sum := 0.0
+	for _, vote := range votes {
+		sum += vote
+	}
+	return (sum / float64(len(votes)))
 }
