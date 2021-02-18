@@ -19,8 +19,8 @@ type Client struct {
 	send  chan *Message
 }
 
-// newClient creates a Client without a Room atached
-func newClient(lobby *Lobby, conn *websocket.Conn) *Client {
+// NewClient creates a Client without a Room atached
+func NewClient(lobby *Lobby, conn *websocket.Conn) *Client {
 	return &Client{
 		name:  generators.Name(),
 		id:    uuid.NewString(),

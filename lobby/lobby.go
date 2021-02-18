@@ -51,14 +51,14 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := newClient(lobby, conn)
+	client := NewClient(lobby, conn)
 
 	lobby.joinClientChan <- client
 
 	go client.readPump()
 	go client.writePump()
 
-	_msg := &Message{
+	msg := &Message{
 		Type: TypeLogin,
 		Content: Login{
 			UserName: client.name,
@@ -66,7 +66,7 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	client.send <- _msg
+	client.send <- msg
 
 }
 
@@ -140,16 +140,12 @@ func (lobby *Lobby) GetClient(id string) (*Client, error) {
 
 // GetPrivateRoom returns the Room if found or Error
 func (lobby *Lobby) GetPrivateRoom(id string) (*Room, error) {
-	room, err := lobby.rooms.GetPrivateRoom(id)
-	if err != nil {
-		return nil, err
-	}
-	return room, nil
+	return lobby.rooms.GetPrivateRoom(id)
 }
 
 // CreatePrivateRoom creates the Room
 func (lobby *Lobby) CreatePrivateRoom(roomOptions *RoomOptions, client *Client) *Room {
-	room := newPrivateRoom(lobby, roomOptions)
+	room := NewPrivateRoom(lobby, roomOptions)
 	go room.run()
 	go room.game.run()
 	client.room = room
@@ -179,7 +175,7 @@ func (lobby *Lobby) JoinPrivateRoom(room *Room, client *Client) error {
 func (lobby *Lobby) CreateOrJoinPublicRoom(client *Client) *Room {
 	room := lobby.firstAvailablePublicRoom()
 	if room == nil {
-		room = newDefaultRoom(lobby)
+		room = NewDefaultRoom(lobby)
 		go room.run()
 		go room.game.run()
 		lobby.joinPublicRoomChan <- room

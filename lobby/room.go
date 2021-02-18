@@ -28,8 +28,8 @@ var defaultOptions = &RoomOptions{
 	NumPlayers: 5,
 }
 
-// newDefaultRoom creates a Room
-func newDefaultRoom(lobby *Lobby) *Room {
+// NewDefaultRoom creates a Room
+func NewDefaultRoom(lobby *Lobby) *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,
@@ -39,12 +39,12 @@ func newDefaultRoom(lobby *Lobby) *Room {
 		ID:              uuid.NewString(),
 		broadcast:       make(chan *Message),
 		options:         *defaultOptions,
-		game:            newDrawGame(clients),
+		game:            NewDrawGame(clients),
 	}
 }
 
-// newPrivateRoom creates a Room
-func newPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
+// NewPrivateRoom creates a Room
+func NewPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,
@@ -54,7 +54,7 @@ func newPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
 		ID:              uuid.NewString(),
 		broadcast:       make(chan *Message),
 		options:         *defaultOptions,
-		game:            newDrawGame(clients),
+		game:            NewDrawGame(clients),
 	}
 }
 
@@ -74,7 +74,7 @@ func (room *Room) run() {
 
 func (room *Room) joinClient(c *Client) {
 	room.clients[c] = true
-	_msg := &Message{
+	msg := &Message{
 		Type: TypeJoinLeave,
 		Content: JoinLeave{
 			UserName: c.name,
@@ -82,21 +82,21 @@ func (room *Room) joinClient(c *Client) {
 			Msg:      fmt.Sprintf("%s has joined", c.name),
 		},
 	}
-	room.broadcastTo(_msg)
+	room.broadcastTo(msg)
 
-	_msg = &Message{
+	msg = &Message{
 		Type: TypePlayers,
 		Content: Players{
 			UserNames: room.getUserNames(),
 		},
 	}
-	room.broadcastTo(_msg)
+	room.broadcastTo(msg)
 }
 
 func (room *Room) leaveClient(c *Client) {
 	if _, ok := room.clients[c]; ok {
 		delete(room.clients, c)
-		_msg := &Message{
+		msg := &Message{
 			Type: TypeJoinLeave,
 			Content: JoinLeave{
 				UserName: c.name,
@@ -104,14 +104,14 @@ func (room *Room) leaveClient(c *Client) {
 				Msg:      fmt.Sprintf("%s has left", c.name),
 			},
 		}
-		room.broadcastTo(_msg)
-		_msg = &Message{
+		room.broadcastTo(msg)
+		msg = &Message{
 			Type: TypePlayers,
 			Content: Players{
 				UserNames: room.getUserNames(),
 			},
 		}
-		room.broadcastTo(_msg)
+		room.broadcastTo(msg)
 	}
 }
 

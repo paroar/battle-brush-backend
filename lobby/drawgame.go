@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/paroar/battle-brush-backend/generators"
+	"github.com/paroar/battle-brush-backend/utils"
 )
 
 // DrawGame game
@@ -39,8 +40,8 @@ type Drawing struct {
 	Img    string
 }
 
-// newDrawGame constructor
-func newDrawGame(players map[*Client]bool) *DrawGame {
+// NewDrawGame constructor
+func NewDrawGame(players map[*Client]bool) *DrawGame {
 	return &DrawGame{
 		state:       StateWaiting,
 		drawings:    make(map[*Client]string),
@@ -87,6 +88,15 @@ func (d *DrawGame) broadcast(msg *Message) {
 
 // startGame starts the game process
 func (d *DrawGame) startGame() {
+	d.setRandomTheme()
+	d.startDrawing()
+	d.recolectDrawings()
+	d.votingDrawings()
+	d.winner()
+	d.changeState(StateWaiting)
+}
+
+func (d *DrawGame) setRandomTheme() {
 	d.theme = generators.Theme()
 	theme := &Message{
 		Type: TypeTheme,
@@ -95,14 +105,17 @@ func (d *DrawGame) startGame() {
 		},
 	}
 	d.broadcast(theme)
+}
+
+func (d *DrawGame) startDrawing() {
 	d.drawings = make(map[*Client]string, len(d.players))
 	d.changeState(StateDrawing)
 	time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
+}
+
+func (d *DrawGame) recolectDrawings() {
 	d.changeState(StateRecolecting)
 	time.Sleep(time.Second)
-	d.broadcastImages()
-	d.winner()
-	d.changeState(StateWaiting)
 }
 
 func (d *DrawGame) addDrawing(drawing *Drawing) {
@@ -127,7 +140,10 @@ func (d *DrawGame) getPlayer(userid string) (*Client, error) {
 	return nil, errors.New("Player not found")
 }
 
-func (d *DrawGame) broadcastImages() {
+func (d *DrawGame) votingDrawings() {
+	d.changeState(StateLoading)
+	time.Sleep(time.Second)
+
 	for client := range d.drawings {
 		msg := &Message{
 			Type: TypeImage,
@@ -137,21 +153,42 @@ func (d *DrawGame) broadcastImages() {
 			},
 		}
 		d.broadcast(msg)
+
 		d.changeState(StateVoting)
 		time.Sleep(time.Duration(defaultGameOptions.VotingTime) * time.Second)
+
 		d.changeState(StateRecolectingVotes)
 		time.Sleep(time.Second)
+
 		d.changeState(StateLoading)
+		time.Sleep(time.Second)
 	}
 }
 
 func (d *DrawGame) winner() {
 	var scores = make(map[*Client]float64)
 	for player, votes := range d.votes {
-		avg := d.averageVotes(votes)
+		avg := utils.Average(votes)
 		scores[player] = avg
 	}
 
+	winner := d.maxScore(scores)
+
+	msg := &Message{
+		Type: TypeWinner,
+		Content: Image{
+			Img:      d.drawings[winner],
+			UserID:   winner.id,
+			UserName: winner.name,
+		},
+	}
+	d.broadcast(msg)
+
+	d.changeState(StateWinner)
+	time.Sleep(10 * time.Second)
+}
+
+func (d *DrawGame) maxScore(scores map[*Client]float64) *Client {
 	var playerWinner *Client
 	var maxScore = 0.0
 	for player, score := range scores {
@@ -160,24 +197,5 @@ func (d *DrawGame) winner() {
 			playerWinner = player
 		}
 	}
-
-	msg := &Message{
-		Type: TypeWinner,
-		Content: Image{
-			Img:      d.drawings[playerWinner],
-			UserID:   playerWinner.id,
-			UserName: playerWinner.name,
-		},
-	}
-	d.broadcast(msg)
-	d.changeState(StateWinner)
-	time.Sleep(10 * time.Second)
-}
-
-func (d *DrawGame) averageVotes(votes []float64) float64 {
-	sum := 0.0
-	for _, vote := range votes {
-		sum += vote
-	}
-	return (sum / float64(len(votes)))
+	return playerWinner
 }

@@ -10,24 +10,24 @@ import (
 
 // CreatePrivateRoom POST Method creates a Room and runs it returning his ID
 func CreatePrivateRoom(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) {
-	var _roomJSON RoomJSON
+	var roomJSON RoomJSON
 
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(rw, "Couldn't read body", http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(bytes, &_roomJSON)
+	err = json.Unmarshal(bytes, &roomJSON)
 	if err != nil {
 		http.Error(rw, "Couldn't Unmarshal", http.StatusInternalServerError)
 		return
 	}
 
 	roomOptions := &lobby.RoomOptions{
-		NumPlayers: _roomJSON.NumPlayers,
+		NumPlayers: roomJSON.NumPlayers,
 	}
 
-	client, err := l.GetClient(_roomJSON.ID)
+	client, err := l.GetClient(roomJSON.ID)
 	if err != nil {
 		http.Error(rw, "Client not found", http.StatusNotFound)
 		return
@@ -35,11 +35,11 @@ func CreatePrivateRoom(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) 
 
 	room := l.CreatePrivateRoom(roomOptions, client)
 
-	roomJSON := &RoomIDJSON{
+	roomIDJSON := RoomIDJSON{
 		ID: room.ID,
 	}
 
-	res, err := json.Marshal(roomJSON)
+	res, err := json.Marshal(&roomIDJSON)
 	if err != nil {
 		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
 		return
@@ -52,26 +52,26 @@ func CreatePrivateRoom(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) 
 
 // JoinPrivateRoom PATCH Method joins a Client into a Room
 func JoinPrivateRoom(l *lobby.Lobby, rw http.ResponseWriter, req *http.Request) {
-	var _joinRoomStruct JoinRoomJSON
+	var joinRoomStruct JoinRoomJSON
 
 	s, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(rw, "Couldn't read body", http.StatusBadRequest)
 		return
 	}
-	err = json.Unmarshal(s, &_joinRoomStruct)
+	err = json.Unmarshal(s, &joinRoomStruct)
 	if err != nil {
 		http.Error(rw, "Couldn't Unmarhsal", http.StatusBadRequest)
 		return
 	}
 
-	client, err := l.GetClient(_joinRoomStruct.ClientID)
+	client, err := l.GetClient(joinRoomStruct.ClientID)
 	if err != nil {
 		http.Error(rw, "Client not found", http.StatusNotFound)
 		return
 	}
 
-	room, err := l.GetPrivateRoom(_joinRoomStruct.RoomID)
+	room, err := l.GetPrivateRoom(joinRoomStruct.RoomID)
 	if err != nil {
 		http.Error(rw, "Room not found", http.StatusConflict)
 		return
@@ -90,20 +90,20 @@ func JoinPrivateRoom(l *lobby.Lobby, rw http.ResponseWriter, req *http.Request) 
 
 // CreateOrJoinRoom POST Method creates a Room and runs it returning his ID
 func CreateOrJoinRoom(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) {
-	var _clientIDJSON ClientIDJSON
+	var clientIDJSON ClientIDJSON
 
 	s, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(rw, "Couldn't read body", http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(s, &_clientIDJSON)
+	err = json.Unmarshal(s, &clientIDJSON)
 	if err != nil {
 		http.Error(rw, "Couldn't Unmarshal", http.StatusInternalServerError)
 		return
 	}
 
-	client, err := l.GetClient(_clientIDJSON.ID)
+	client, err := l.GetClient(clientIDJSON.ID)
 	if err != nil {
 		http.Error(rw, "Client not found", http.StatusNotFound)
 		return
@@ -111,11 +111,11 @@ func CreateOrJoinRoom(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) {
 
 	room := l.CreateOrJoinPublicRoom(client)
 
-	roomJSON := &RoomIDJSON{
+	roomJSON := RoomIDJSON{
 		ID: room.ID,
 	}
 
-	res, err := json.Marshal(roomJSON)
+	res, err := json.Marshal(&roomJSON)
 	if err != nil {
 		http.Error(rw, "Couldn't Marshal", http.StatusInternalServerError)
 		return
