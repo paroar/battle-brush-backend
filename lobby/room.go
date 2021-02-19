@@ -44,7 +44,7 @@ func NewDefaultRoom(lobby *Lobby) *Room {
 }
 
 // NewPrivateRoom creates a Room
-func NewPrivateRoom(lobby *Lobby, roomOptions *RoomOptions) *Room {
+func NewPrivateRoom(lobby *Lobby) *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,

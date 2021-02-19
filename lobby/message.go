@@ -54,17 +54,44 @@ type Vote struct {
 	UserID string  `json:"userid"`
 }
 
+// Connection struct
+type Connection struct {
+	Status   string `json:"status"`
+	RoomID   string `json:"roomid"`
+	RoomType string `json:"roomtype"`
+}
+
+// RoomCommand struct
+type RoomCommand struct {
+	Command string `json:"command"`
+	RoomID  string `json:"roomid"`
+}
+
 // Common Message types
 const (
-	TypeLogin     = "Login"
-	TypeJoinLeave = "JoinLeave"
-	TypeChat      = "Chat"
-	TypePlayers   = "Players"
-	TypeGameState = "GameState"
-	TypeImage     = "Image"
-	TypeTheme     = "Theme"
-	TypeVote      = "Vote"
-	TypeWinner    = "Winner"
+	TypeLogin       = "Login"
+	TypeJoinLeave   = "JoinLeave"
+	TypeChat        = "Chat"
+	TypePlayers     = "Players"
+	TypeGameState   = "GameState"
+	TypeImage       = "Image"
+	TypeTheme       = "Theme"
+	TypeVote        = "Vote"
+	TypeWinner      = "Winner"
+	TypeConnection  = "Connection"
+	TypeRoomCommand = "RoomCommand"
+)
+
+// Room Types
+const (
+	RoomTypePrivate = "Private"
+	RoomTypePublic  = "Public"
+)
+
+// Room Commands
+const (
+	RoomCommandCreate     = "Create"
+	RoomCommandJoinCreate = "JoinCreate"
 )
 
 // Common Game states

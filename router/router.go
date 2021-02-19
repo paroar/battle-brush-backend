@@ -16,26 +16,14 @@ func NewRouter() *http.Server {
 
 	flag.Parse()
 
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 
 	l := lobby.NewLobby()
 	go l.Run()
 
 	//LOBBY
 	r.Handle("/ws", l)
-
-	//ROOMS
-	r.HandleFunc("/createroom", func(rw http.ResponseWriter, r *http.Request) {
-		CreatePrivateRoom(l, rw, r)
-	}).Methods(http.MethodPost)
-
-	r.HandleFunc("/joinroom", func(rw http.ResponseWriter, r *http.Request) {
-		JoinPrivateRoom(l, rw, r)
-	}).Methods(http.MethodPatch)
-
-	r.HandleFunc("/createjoin", func(rw http.ResponseWriter, r *http.Request) {
-		CreateOrJoinRoom(l, rw, r)
-	}).Methods(http.MethodPost)
+	r.Handle("/ws/{room}", l)
 
 	origins := []string{
 		"http://localhost:3000",

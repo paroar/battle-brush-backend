@@ -91,8 +91,41 @@ func (c *Client) readPump() {
 				Img:    img.Img,
 			}
 			c.room.game.drawChan <- drawing
+		case TypeRoomCommand:
+			var r RoomCommand
+			if err := json.Unmarshal(content, &r); err != nil {
+				log.Println(err)
+			}
+			command := r.Command
+			switch command {
+			case RoomCommandCreate:
+				room := c.lobby.CreatePrivateRoom(c)
+				msg := &Message{
+					Type: TypeRoomCommand,
+					Content: RoomCommand{
+						Command: RoomCommandCreate,
+						RoomID:  room.ID,
+					},
+				}
+				c.send <- msg
+				break
+			case RoomCommandJoinCreate:
+				room := c.lobby.CreateOrJoinPublicRoom(c)
+				msg := &Message{
+					Type: TypeRoomCommand,
+					Content: RoomCommand{
+						Command: RoomCommandJoinCreate,
+						RoomID:  room.ID,
+					},
+				}
+				c.send <- msg
+				break
+			default:
+				log.Printf("Unknown command: %s", r.Command)
+			}
+
 		default:
-			log.Printf("unknown message type: %s", msg.Type)
+			log.Printf("Unknown message type: %s", msg.Type)
 		}
 	}
 }

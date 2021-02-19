@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
@@ -45,6 +46,7 @@ func NewLobby() *Lobby {
 }
 
 func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+
 	conn, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -67,6 +69,34 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	client.send <- msg
+
+	vars := mux.Vars(r)
+	roomid := vars["room"]
+
+	if roomid != "" {
+		client, err := lobby.GetClient(client.id)
+		room, err := lobby.GetPrivateRoom(roomid)
+		err = lobby.JoinPrivateRoom(room, client)
+
+		msg := &Message{
+			Type: TypeConnection,
+		}
+
+		if err != nil {
+			msg.Content = Connection{
+				RoomID: roomid,
+				Status: err.Error(),
+			}
+		} else {
+			msg.Content = Connection{
+				RoomID:   roomid,
+				Status:   "ok",
+				RoomType: RoomTypePrivate,
+			}
+		}
+
+		client.send <- msg
+	}
 
 }
 
@@ -144,8 +174,8 @@ func (lobby *Lobby) GetPrivateRoom(id string) (*Room, error) {
 }
 
 // CreatePrivateRoom creates the Room
-func (lobby *Lobby) CreatePrivateRoom(roomOptions *RoomOptions, client *Client) *Room {
-	room := NewPrivateRoom(lobby, roomOptions)
+func (lobby *Lobby) CreatePrivateRoom(client *Client) *Room {
+	room := NewPrivateRoom(lobby)
 	go room.run()
 	go room.game.run()
 	client.room = room
