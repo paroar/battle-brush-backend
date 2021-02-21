@@ -210,7 +210,7 @@ func (lobby *Lobby) JoinClientToPrivateRoom(room *Room, client *Client) error {
 func (lobby *Lobby) CreateOrJoinPublicRoom(client *Client) *Room {
 	room := lobby.firstAvailablePublicRoom()
 	if room == nil {
-		room = NewDefaultRoom(lobby)
+		room = NewPublicRoom(lobby)
 		go room.run()
 		go room.game.run()
 		lobby.joinPublicRoomChan <- room

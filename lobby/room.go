@@ -28,8 +28,8 @@ var defaultOptions = &RoomOptions{
 	NumPlayers: 5,
 }
 
-// NewDefaultRoom creates a Room
-func NewDefaultRoom(lobby *Lobby) *Room {
+// NewPublicRoom creates a Room
+func NewPublicRoom(lobby *Lobby) *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
 		lobby:           lobby,

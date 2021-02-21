@@ -91,7 +91,7 @@ func TestFirstAvailablePublicRoom_Room(t *testing.T) {
 	l := NewLobby()
 	go l.Run()
 
-	room := NewDefaultRoom(l)
+	room := NewPublicRoom(l)
 
 	l.joinPublicRoom(room)
 
@@ -137,7 +137,7 @@ func TestLeavePublicRoom(t *testing.T) {
 	l := NewLobby()
 	go l.Run()
 
-	room := NewDefaultRoom(l)
+	room := NewPublicRoom(l)
 
 	go room.run()
 
@@ -230,23 +230,6 @@ func TestJoinPrivateRoom_Full(t *testing.T) {
 		t.Fatal("JoinPrivateRoom should return an error")
 	}
 
-}
-
-func TestGetPrivateRoom(t *testing.T) {
-	l := NewLobby()
-	go l.Run()
-
-	room := NewPrivateRoom(l)
-
-	go room.run()
-
-	l.joinPrivateRoom(room)
-
-	_, err := l.GetPrivateRoom(room.ID)
-
-	if err != nil {
-		t.Fatal("GetPrivateRoom should return the room ID")
-	}
 }
 
 func TestCreatePrivateRoom(t *testing.T) {
