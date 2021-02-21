@@ -76,7 +76,7 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if roomid != "" {
 		client, err := lobby.GetClient(client.id)
 		room, err := lobby.GetPrivateRoom(roomid)
-		err = lobby.JoinPrivateRoom(room, client)
+		err = lobby.JoinClientToPrivateRoom(room, client)
 
 		msg := &Message{
 			Type: TypeConnection,
@@ -168,6 +168,11 @@ func (lobby *Lobby) GetClient(id string) (*Client, error) {
 	return nil, errors.New("Client not found")
 }
 
+// GetPublicRoom returns the Room if found or Error
+func (lobby *Lobby) GetPublicRoom(id string) (*Room, error) {
+	return lobby.rooms.GetPublicRoom(id)
+}
+
 // GetPrivateRoom returns the Room if found or Error
 func (lobby *Lobby) GetPrivateRoom(id string) (*Room, error) {
 	return lobby.rooms.GetPrivateRoom(id)
@@ -186,8 +191,8 @@ func (lobby *Lobby) CreatePrivateRoom(client *Client) *Room {
 	return room
 }
 
-// JoinPrivateRoom returns an error if the Room is full or joins the Room
-func (lobby *Lobby) JoinPrivateRoom(room *Room, client *Client) error {
+// JoinClientToPrivateRoom returns an error if the Room is full or joins the Room
+func (lobby *Lobby) JoinClientToPrivateRoom(room *Room, client *Client) error {
 
 	if room.isAvailable() {
 		return errors.New("Room is full")

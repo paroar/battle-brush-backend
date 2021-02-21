@@ -31,10 +31,6 @@ func NewRouter() *http.Server {
 	allowedOrigins := handlers.AllowedOrigins(origins)
 
 	methods := []string{
-		http.MethodGet,
-		http.MethodPost,
-		http.MethodPut,
-		http.MethodPatch,
 		http.MethodOptions,
 	}
 	allowedMethods := handlers.AllowedMethods(methods)
