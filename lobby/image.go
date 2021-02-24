@@ -1,6 +1,10 @@
 package lobby
 
-import "log"
+import (
+	"log"
+
+	"github.com/paroar/battle-brush-backend/drawing"
+)
 
 // Image struct
 type Image struct {
@@ -15,9 +19,9 @@ func (i *Image) Do(c *Client) {
 	if err != nil {
 		log.Println(err)
 	}
-	drawing := &Drawing{
-		Client: client,
-		Img:    i.Img,
+	drawing := &drawing.Drawing{
+		ClientID: client.id,
+		Img:      i.Img,
 	}
 	c.room.game.drawChan <- drawing
 }

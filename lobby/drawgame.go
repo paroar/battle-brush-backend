@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/paroar/battle-brush-backend/drawing"
 	"github.com/paroar/battle-brush-backend/generators"
 	"github.com/paroar/battle-brush-backend/utils"
 )
@@ -12,12 +13,12 @@ import (
 // DrawGame game
 type DrawGame struct {
 	players     map[*Client]bool
-	drawings    map[*Client]string
+	drawings    map[string]string
 	votes       map[*Client][]float64
 	theme       string
 	state       string
 	stateChan   chan string
-	drawChan    chan *Drawing
+	drawChan    chan *drawing.Drawing
 	votingChan  chan *Vote
 	gameOptions Options
 }
@@ -34,20 +35,14 @@ var defaultGameOptions = &Options{
 	VotingTime: 10,
 }
 
-// Drawing struct
-type Drawing struct {
-	Client *Client
-	Img    string
-}
-
 // NewDrawGame constructor
 func NewDrawGame(players map[*Client]bool) *DrawGame {
 	return &DrawGame{
 		state:       StateWaiting,
-		drawings:    make(map[*Client]string),
+		drawings:    make(map[string]string),
 		votes:       make(map[*Client][]float64),
 		stateChan:   make(chan string),
-		drawChan:    make(chan *Drawing, 10),
+		drawChan:    make(chan *drawing.Drawing, 10),
 		votingChan:  make(chan *Vote),
 		gameOptions: *defaultGameOptions,
 		players:     players,
@@ -108,7 +103,7 @@ func (d *DrawGame) setRandomTheme() {
 }
 
 func (d *DrawGame) startDrawing() {
-	d.drawings = make(map[*Client]string, len(d.players))
+	d.drawings = make(map[string]string, len(d.players))
 	d.changeState(StateDrawing)
 	time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
 }
@@ -118,8 +113,8 @@ func (d *DrawGame) recolectDrawings() {
 	time.Sleep(time.Second)
 }
 
-func (d *DrawGame) addDrawing(drawing *Drawing) {
-	d.drawings[drawing.Client] = drawing.Img
+func (d *DrawGame) addDrawing(drawing *drawing.Drawing) {
+	d.drawings[drawing.ClientID] = drawing.Img
 }
 
 func (d *DrawGame) addVote(vote *Vote) {
@@ -144,12 +139,12 @@ func (d *DrawGame) votingDrawings() {
 	d.changeState(StateLoading)
 	time.Sleep(time.Second)
 
-	for client := range d.drawings {
+	for userid, img := range d.drawings {
 		msg := &Message{
 			Type: TypeImage,
 			Content: Image{
-				UserID: client.id,
-				Img:    d.drawings[client],
+				UserID: userid,
+				Img:    img,
 			},
 		}
 		d.broadcast(msg)
@@ -177,7 +172,7 @@ func (d *DrawGame) winner() {
 	msg := &Message{
 		Type: TypeWinner,
 		Content: Image{
-			Img:      d.drawings[winner],
+			Img:      d.drawings[winner.id],
 			UserID:   winner.id,
 			UserName: winner.name,
 		},
