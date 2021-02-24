@@ -9,7 +9,6 @@ import (
 
 // Room struct
 type Room struct {
-	lobby           *Lobby
 	clients         map[*Client]bool
 	joinClientChan  chan *Client
 	leaveClientChan chan *Client
@@ -29,10 +28,9 @@ var defaultOptions = &RoomOptions{
 }
 
 // NewPublicRoom creates a Room
-func NewPublicRoom(lobby *Lobby) *Room {
+func NewPublicRoom() *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
-		lobby:           lobby,
 		clients:         clients,
 		joinClientChan:  make(chan *Client),
 		leaveClientChan: make(chan *Client),
@@ -47,7 +45,6 @@ func NewPublicRoom(lobby *Lobby) *Room {
 func NewPrivateRoom(lobby *Lobby) *Room {
 	clients := make(map[*Client]bool)
 	return &Room{
-		lobby:           lobby,
 		clients:         clients,
 		joinClientChan:  make(chan *Client),
 		leaveClientChan: make(chan *Client),

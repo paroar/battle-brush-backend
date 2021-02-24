@@ -91,7 +91,7 @@ func TestFirstAvailablePublicRoom_Room(t *testing.T) {
 	l := NewLobby()
 	go l.Run()
 
-	room := NewPublicRoom(l)
+	room := NewPublicRoom()
 
 	l.joinPublicRoom(room)
 
@@ -137,7 +137,7 @@ func TestLeavePublicRoom(t *testing.T) {
 	l := NewLobby()
 	go l.Run()
 
-	room := NewPublicRoom(l)
+	room := NewPublicRoom()
 
 	go room.run()
 
@@ -203,7 +203,6 @@ func TestJoinPrivateRoom_Full(t *testing.T) {
 		NumPlayers: 0,
 	}
 	room := &Room{
-		lobby:           l,
 		clients:         clients,
 		joinClientChan:  make(chan *Client),
 		leaveClientChan: make(chan *Client),
@@ -256,7 +255,6 @@ func TestAvailableRooms(t *testing.T) {
 	clients := make(map[*Client]bool)
 
 	room1 := &Room{
-		lobby:           l,
 		clients:         clients,
 		joinClientChan:  make(chan *Client),
 		leaveClientChan: make(chan *Client),
@@ -271,7 +269,6 @@ func TestAvailableRooms(t *testing.T) {
 	l.joinPrivateRoom(room1)
 
 	room2 := &Room{
-		lobby:           l,
 		clients:         clients,
 		joinClientChan:  make(chan *Client),
 		leaveClientChan: make(chan *Client),

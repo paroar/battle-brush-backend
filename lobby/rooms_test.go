@@ -6,7 +6,7 @@ func TestGetPublicRoom(t *testing.T) {
 	l := NewLobby()
 	go l.Run()
 
-	room := NewPublicRoom(l)
+	room := NewPublicRoom()
 
 	go room.run()
 
@@ -40,7 +40,7 @@ func TestGetPublicRooms(t *testing.T) {
 	l := NewLobby()
 	go l.Run()
 
-	room := NewPublicRoom(l)
+	room := NewPublicRoom()
 
 	go room.run()
 
