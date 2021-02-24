@@ -27,7 +27,6 @@ type Lobby struct {
 	leavePublicRoomChan  chan *Room
 	joinPrivateRoomChan  chan *Room
 	leavePrivateRoomChan chan *Room
-	broadcast            chan *Message
 }
 
 // NewLobby creates a Lobby
@@ -41,7 +40,6 @@ func NewLobby() *Lobby {
 		leavePublicRoomChan:  make(chan *Room),
 		joinPrivateRoomChan:  make(chan *Room),
 		leavePrivateRoomChan: make(chan *Room),
-		broadcast:            make(chan *Message),
 	}
 }
 
@@ -116,8 +114,6 @@ func (lobby *Lobby) Run() {
 			lobby.joinPrivateRoom(room)
 		case room := <-lobby.leavePrivateRoomChan:
 			lobby.leavePrivateRoom(room)
-		case msg := <-lobby.broadcast:
-			lobby.broadcastTo(msg)
 		}
 	}
 }
@@ -149,12 +145,6 @@ func (lobby *Lobby) joinPrivateRoom(r *Room) {
 func (lobby *Lobby) leavePrivateRoom(r *Room) {
 	if _, ok := lobby.rooms.privateRooms[r]; ok {
 		delete(lobby.rooms.privateRooms, r)
-	}
-}
-
-func (lobby *Lobby) broadcastTo(msg *Message) {
-	for client := range lobby.clients {
-		client.send <- msg
 	}
 }
 
