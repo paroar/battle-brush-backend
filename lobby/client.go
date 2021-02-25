@@ -72,6 +72,6 @@ func (c *Client) disconnect() {
 	if c.room != nil {
 		c.room.leaveClientChan <- c
 	}
-	c.lobby.leaveClientChan <- c
+	c.lobby.DeleteClient(c.id)
 	c.conn.Close()
 }

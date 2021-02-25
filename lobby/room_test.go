@@ -1,57 +1,50 @@
 package lobby
 
-import (
-	"testing"
+// func TestRoomLeaveClient(t *testing.T) {
+// 	l := NewLobby()
+// 	go l.Run()
 
-	"github.com/google/uuid"
-	"github.com/paroar/battle-brush-backend/generators"
-)
+// 	client := &Client{
+// 		name:  generators.Name(),
+// 		id:    uuid.NewString(),
+// 		lobby: l,
+// 		send:  make(chan *Message),
+// 	}
 
-func TestRoomLeaveClient(t *testing.T) {
-	l := NewLobby()
-	go l.Run()
+// 	l.joinClient(client)
 
-	client := &Client{
-		name:  generators.Name(),
-		id:    uuid.NewString(),
-		lobby: l,
-		send:  make(chan *Message),
-	}
+// 	room := l.CreatePrivateRoom(client)
 
-	l.joinClient(client)
+// 	room.leaveClient(client)
 
-	room := l.CreatePrivateRoom(client)
+// 	_, err := room.getClient(client.id)
+// 	if err == nil {
+// 		t.Fatal("room.getClient should return an error")
+// 	}
 
-	room.leaveClient(client)
+// }
 
-	_, err := room.getClient(client.id)
-	if err == nil {
-		t.Fatal("room.getClient should return an error")
-	}
+// func TestRoomGetClient(t *testing.T) {
+// 	l := NewLobby()
+// 	go l.Run()
 
-}
+// 	client := &Client{
+// 		name:  generators.Name(),
+// 		id:    uuid.NewString(),
+// 		lobby: l,
+// 		send:  make(chan *Message),
+// 	}
 
-func TestRoomGetClient(t *testing.T) {
-	l := NewLobby()
-	go l.Run()
+// 	l.joinClient(client)
 
-	client := &Client{
-		name:  generators.Name(),
-		id:    uuid.NewString(),
-		lobby: l,
-		send:  make(chan *Message),
-	}
+// 	room := l.CreatePrivateRoom(client)
 
-	l.joinClient(client)
+// 	c, err := room.getClient(client.id)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	room := l.CreatePrivateRoom(client)
-
-	c, err := room.getClient(client.id)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if c.id != client.id {
-		t.Fatal("room.getClient should return the same client")
-	}
-}
+// 	if c.id != client.id {
+// 		t.Fatal("room.getClient should return the same client")
+// 	}
+// }

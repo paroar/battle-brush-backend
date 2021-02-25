@@ -3,8 +3,6 @@ package lobby
 import (
 	"errors"
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 // Room struct
@@ -13,6 +11,7 @@ type Room struct {
 	joinClientChan  chan *Client
 	leaveClientChan chan *Client
 	ID              string
+	TypeRoom        string
 	broadcast       chan *Message
 	options         RoomOptions
 	game            *DrawGame
@@ -27,33 +26,33 @@ var defaultOptions = &RoomOptions{
 	NumPlayers: 5,
 }
 
-// NewPublicRoom creates a Room
-func NewPublicRoom() *Room {
-	clients := make(map[*Client]bool)
-	return &Room{
-		clients:         clients,
-		joinClientChan:  make(chan *Client),
-		leaveClientChan: make(chan *Client),
-		ID:              uuid.NewString(),
-		broadcast:       make(chan *Message),
-		options:         *defaultOptions,
-		game:            NewDrawGame(clients),
-	}
-}
+// // NewPublicRoom creates a Room
+// func NewPublicRoom() *Room {
+// 	clients := make(map[*Client]bool)
+// 	return &Room{
+// 		clients:         clients,
+// 		joinClientChan:  make(chan *Client),
+// 		leaveClientChan: make(chan *Client),
+// 		ID:              uuid.NewString(),
+// 		broadcast:       make(chan *Message),
+// 		options:         *defaultOptions,
+// 		game:            NewDrawGame(clients),
+// 	}
+// }
 
-// NewPrivateRoom creates a Room
-func NewPrivateRoom(lobby *Lobby) *Room {
-	clients := make(map[*Client]bool)
-	return &Room{
-		clients:         clients,
-		joinClientChan:  make(chan *Client),
-		leaveClientChan: make(chan *Client),
-		ID:              uuid.NewString(),
-		broadcast:       make(chan *Message),
-		options:         *defaultOptions,
-		game:            NewDrawGame(clients),
-	}
-}
+// // NewPrivateRoom creates a Room
+// func NewPrivateRoom(lobby *Lobby) *Room {
+// 	clients := make(map[*Client]bool)
+// 	return &Room{
+// 		clients:         clients,
+// 		joinClientChan:  make(chan *Client),
+// 		leaveClientChan: make(chan *Client),
+// 		ID:              uuid.NewString(),
+// 		broadcast:       make(chan *Message),
+// 		options:         *defaultOptions,
+// 		game:            NewDrawGame(clients),
+// 	}
+// }
 
 // run runs the Room
 func (room *Room) run() {

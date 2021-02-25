@@ -19,7 +19,7 @@ func NewRouter() *http.Server {
 	r := mux.NewRouter().StrictSlash(true)
 
 	l := lobby.NewLobby()
-	go l.Run()
+	// go l.Run()
 
 	//LOBBY
 	r.Handle("/ws", l)
