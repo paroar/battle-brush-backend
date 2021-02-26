@@ -24,6 +24,12 @@ func NewRouter() *http.Server {
 	//LOBBY
 	r.Handle("/ws", l)
 	r.Handle("/ws/{room}", l)
+	r.HandleFunc("/private/{userid}", func(rw http.ResponseWriter, r *http.Request) {
+		PrivateRoomHandler(l, rw, r)
+	})
+	r.HandleFunc("/public/{userid}", func(rw http.ResponseWriter, r *http.Request) {
+		PublicRoomHandler(l, rw, r)
+	})
 
 	origins := []string{
 		"http://localhost:3000",
@@ -31,6 +37,7 @@ func NewRouter() *http.Server {
 	allowedOrigins := handlers.AllowedOrigins(origins)
 
 	methods := []string{
+		http.MethodGet,
 		http.MethodOptions,
 	}
 	allowedMethods := handlers.AllowedMethods(methods)

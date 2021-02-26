@@ -31,7 +31,7 @@ func (pr *PublicRoom) GetID() string {
 // JoinClient joins the Client into the Room
 func (pr *PublicRoom) JoinClient(c *Client) error {
 
-	if pr.IsAvailable() {
+	if !pr.IsAvailable() {
 		return errors.New("Room is full")
 	}
 

@@ -1,6 +1,7 @@
 package lobby
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -28,10 +29,17 @@ func (r *PrivateRoom) GetID() string {
 }
 
 // JoinClient joins the Client into the Room
-func (r *PrivateRoom) JoinClient(c *Client) {
+func (r *PrivateRoom) JoinClient(c *Client) error {
+
+	if !r.IsAvailable() {
+		return errors.New("Room is full")
+	}
+
 	r.Clients[c] = true
 	r.BroadcastJoinLeave(c.name, c.id, "has joined")
 	r.BroadcastClientNames()
+
+	return nil
 }
 
 // LeaveClient leaves the Client from the Room

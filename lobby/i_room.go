@@ -3,9 +3,9 @@ package lobby
 //IRoom Room interface
 type IRoom interface {
 	GetID() string
-	JoinClient(c *Client)
+	JoinClient(c *Client) error
 	LeaveClient(c *Client)
-	Broadcast()
+	Broadcast(msg *Message)
 	IsPublic() bool
 	IsAvailable() bool
 }
