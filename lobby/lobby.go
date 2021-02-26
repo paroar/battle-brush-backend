@@ -85,13 +85,10 @@ func (lobby *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	if roomid != "" {
 		client, err := lobby.GetClient(client.id)
-		room, err := lobby.GetRoom(roomid)
-		if err != nil {
-			//Something
-		} else {
-			pr, _ := room.(IRoom)
+		room := lobby.GetRoom(roomid)
+		if room != nil {
+			pr := room.(IRoom)
 			pr.JoinClient(client)
-			// err = lobby.JoinClientToPrivateRoom(room, client)
 		}
 
 		msg := &Message{
@@ -126,12 +123,12 @@ func (lobby *Lobby) GetClient(id string) (*Client, error) {
 }
 
 // GetRoom returns the Room if found or Error
-func (lobby *Lobby) GetRoom(id string) (interface{}, error) {
+func (lobby *Lobby) GetRoom(id string) interface{} {
 	if r, ok := lobby.rooms[id]; ok {
-		return &r, nil
+		return r
 	}
 
-	return nil, errors.New("Client not found")
+	return nil
 }
 
 // FirstAvailablePublicRoom returns an available public Room if there is one
@@ -143,15 +140,4 @@ func (lobby *Lobby) FirstAvailablePublicRoom() interface{} {
 		}
 	}
 	return nil
-}
-
-// AvailableRooms returns all available Rooms
-func (lobby *Lobby) availableRooms(rooms []*Room) []*Room {
-	availableRooms := []*Room{}
-	for _, room := range rooms {
-		if room.game.state == StateWaiting && len(room.clients) <= room.options.NumPlayers {
-			availableRooms = append(availableRooms, room)
-		}
-	}
-	return availableRooms
 }

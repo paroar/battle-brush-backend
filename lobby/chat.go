@@ -12,5 +12,5 @@ func (c *Chat) Do(client *Client) {
 		Type:    TypeChat,
 		Content: c,
 	}
-	client.room.broadcast <- msg
+	client.room.Broadcast(msg)
 }

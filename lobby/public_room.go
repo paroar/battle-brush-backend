@@ -9,17 +9,15 @@ import (
 
 // PublicRoom struct
 type PublicRoom struct {
-	ID        string
-	Clients   map[*Client]bool
-	broadcast chan *Message
+	ID      string
+	Clients map[string]*Client
 }
 
 // NewPublicRoom creates a Room
 func NewPublicRoom() interface{} {
 	return &PublicRoom{
-		Clients:   make(map[*Client]bool),
-		ID:        uuid.NewString(),
-		broadcast: make(chan *Message),
+		Clients: make(map[string]*Client),
+		ID:      uuid.NewString(),
 	}
 }
 
@@ -35,7 +33,8 @@ func (pr *PublicRoom) JoinClient(c *Client) error {
 		return errors.New("Room is full")
 	}
 
-	pr.Clients[c] = true
+	c.room = pr
+	pr.Clients[c.id] = c
 	pr.BroadcastJoinLeave(c.name, c.id, "has joined")
 	pr.BroadcastClientNames()
 
@@ -43,9 +42,9 @@ func (pr *PublicRoom) JoinClient(c *Client) error {
 }
 
 // LeaveClient leaves the Client from the Room
-func (pr *PublicRoom) LeaveClient(c *Client) {
-	if _, ok := pr.Clients[c]; ok {
-		delete(pr.Clients, c)
+func (pr *PublicRoom) LeaveClient(id string) {
+	if c, ok := pr.Clients[id]; ok {
+		delete(pr.Clients, id)
 		pr.BroadcastJoinLeave(c.name, c.id, "has left")
 		pr.BroadcastClientNames()
 	}
@@ -53,7 +52,7 @@ func (pr *PublicRoom) LeaveClient(c *Client) {
 
 //Broadcast sends a message to all the Clients in the Room
 func (pr *PublicRoom) Broadcast(msg *Message) {
-	for client := range pr.Clients {
+	for _, client := range pr.Clients {
 		client.send <- msg
 	}
 }
@@ -61,7 +60,7 @@ func (pr *PublicRoom) Broadcast(msg *Message) {
 //GetNames returns the names of all the Clients in the Room
 func (pr *PublicRoom) GetNames() []string {
 	names := []string{}
-	for client := range pr.Clients {
+	for _, client := range pr.Clients {
 		names = append(names, client.name)
 	}
 	return names

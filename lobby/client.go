@@ -15,7 +15,7 @@ type Client struct {
 	id    string
 	conn  *websocket.Conn
 	lobby *Lobby
-	room  *Room
+	room  IRoom
 	send  chan *Message
 }
 
@@ -70,7 +70,7 @@ func (c *Client) readPump() {
 
 func (c *Client) disconnect() {
 	if c.room != nil {
-		c.room.leaveClientChan <- c
+		c.room.LeaveClient(c.id)
 	}
 	c.lobby.DeleteClient(c.id)
 	c.conn.Close()

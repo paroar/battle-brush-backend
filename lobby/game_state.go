@@ -8,7 +8,7 @@ type GameState struct {
 
 //Do starts the game
 func (g *GameState) Do(c *Client) {
-	if g.Command == StateStart {
-		go c.room.game.startGame()
-	}
+	// if g.Command == StateStart {
+	// 	go c.room.game.startGame()
+	// }
 }
