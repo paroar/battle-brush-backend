@@ -11,13 +11,16 @@ import (
 type PublicRoom struct {
 	ID      string
 	Clients map[string]*Client
+	Game    interface{}
 }
 
 // NewPublicRoom creates a Room
 func NewPublicRoom() interface{} {
+	clients := make(map[string]*Client)
 	return &PublicRoom{
-		Clients: make(map[string]*Client),
+		Clients: clients,
 		ID:      uuid.NewString(),
+		Game:    NewDrawGame(clients),
 	}
 }
 
@@ -98,4 +101,9 @@ func (pr *PublicRoom) IsPublic() bool {
 // IsAvailable returns if the Room is available
 func (pr *PublicRoom) IsAvailable() bool {
 	return true
+}
+
+//GetGame returns game
+func (pr *PublicRoom) GetGame() interface{} {
+	return pr.Game
 }

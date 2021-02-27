@@ -8,6 +8,7 @@ type IRoom interface {
 	Broadcast(msg *Message)
 	IsPublic() bool
 	IsAvailable() bool
+	GetGame() interface{}
 }
 
 //Room Types

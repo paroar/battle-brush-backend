@@ -1,8 +1,6 @@
 package lobby
 
 import (
-	"errors"
-	"log"
 	"time"
 
 	"github.com/paroar/battle-brush-backend/drawing"
@@ -12,9 +10,9 @@ import (
 
 // DrawGame game
 type DrawGame struct {
-	players     map[*Client]bool
+	clients     map[string]*Client
 	drawings    map[string]string
-	votes       map[*Client][]float64
+	votes       map[string][]float64
 	theme       string
 	state       string
 	stateChan   chan string
@@ -36,16 +34,16 @@ var defaultGameOptions = &Options{
 }
 
 // NewDrawGame constructor
-func NewDrawGame(players map[*Client]bool) *DrawGame {
+func NewDrawGame(clients map[string]*Client) interface{} {
 	return &DrawGame{
 		state:       StateWaiting,
 		drawings:    make(map[string]string),
-		votes:       make(map[*Client][]float64),
+		votes:       make(map[string][]float64),
 		stateChan:   make(chan string),
 		drawChan:    make(chan *drawing.Drawing, 10),
 		votingChan:  make(chan *Vote),
 		gameOptions: *defaultGameOptions,
-		players:     players,
+		clients:     clients,
 	}
 }
 
@@ -76,13 +74,14 @@ func (d *DrawGame) changeState(state string) {
 }
 
 func (d *DrawGame) broadcast(msg *Message) {
-	for player := range d.players {
-		player.send <- msg
+	for _, client := range d.clients {
+		client.send <- msg
 	}
 }
 
-// startGame starts the game process
-func (d *DrawGame) startGame() {
+// StartGame starts the game process
+func (d *DrawGame) StartGame() {
+	go d.run()
 	d.setRandomTheme()
 	d.startDrawing()
 	d.recolectDrawings()
@@ -103,7 +102,7 @@ func (d *DrawGame) setRandomTheme() {
 }
 
 func (d *DrawGame) startDrawing() {
-	d.drawings = make(map[string]string, len(d.players))
+	d.drawings = make(map[string]string, len(d.clients))
 	d.changeState(StateDrawing)
 	time.Sleep(time.Duration(d.gameOptions.DrawTime) * time.Second)
 }
@@ -118,21 +117,8 @@ func (d *DrawGame) addDrawing(drawing *drawing.Drawing) {
 }
 
 func (d *DrawGame) addVote(vote *Vote) {
-	client, err := d.getPlayer(vote.UserID)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	d.votes[client] = append(d.votes[client], vote.Vote)
-}
-
-func (d *DrawGame) getPlayer(userid string) (*Client, error) {
-	for player := range d.players {
-		if userid == player.id {
-			return player, nil
-		}
-	}
-	return nil, errors.New("Player not found")
+	client := d.clients[vote.UserID]
+	d.votes[client.id] = append(d.votes[client.id], vote.Vote)
 }
 
 func (d *DrawGame) votingDrawings() {
@@ -161,20 +147,22 @@ func (d *DrawGame) votingDrawings() {
 }
 
 func (d *DrawGame) winner() {
-	var scores = make(map[*Client]float64)
-	for player, votes := range d.votes {
+	var scores = make(map[string]float64)
+	for clientid, votes := range d.votes {
 		avg := utils.Average(votes)
-		scores[player] = avg
+		scores[clientid] = avg
 	}
 
 	winner := d.maxScore(scores)
 
+	client := d.clients[winner]
+
 	msg := &Message{
 		Type: TypeWinner,
 		Content: Image{
-			Img:      d.drawings[winner.id],
-			UserID:   winner.id,
-			UserName: winner.name,
+			Img:      d.drawings[client.id],
+			UserID:   client.id,
+			UserName: client.name,
 		},
 	}
 	d.broadcast(msg)
@@ -183,14 +171,24 @@ func (d *DrawGame) winner() {
 	time.Sleep(10 * time.Second)
 }
 
-func (d *DrawGame) maxScore(scores map[*Client]float64) *Client {
-	var playerWinner *Client
-	var maxScore = 0.0
+func (d *DrawGame) maxScore(scores map[string]float64) string {
+	var maxScore float64
+	var winnerid string
 	for player, score := range scores {
 		if score > maxScore {
 			maxScore = score
-			playerWinner = player
+			winnerid = player
 		}
 	}
-	return playerWinner
+	return winnerid
+}
+
+//Vote interface method for Votes
+func (d *DrawGame) Vote(v *Vote) {
+	d.votingChan <- v
+}
+
+//Drawing interface method for Drawings
+func (d *DrawGame) Drawing(dw *drawing.Drawing) {
+	d.drawChan <- dw
 }

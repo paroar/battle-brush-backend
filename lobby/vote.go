@@ -8,5 +8,6 @@ type Vote struct {
 
 //Do retrieves votes
 func (v *Vote) Do(c *Client) {
-	// c.room.game.votingChan <- v
+	game := c.room.GetGame().(IGame)
+	game.Vote(v)
 }

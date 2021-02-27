@@ -1,5 +1,7 @@
 package lobby
 
+import "github.com/paroar/battle-brush-backend/drawing"
+
 // Image struct
 type Image struct {
 	UserID   string `json:"userid"`
@@ -9,13 +11,10 @@ type Image struct {
 
 //Do retrieves a Drawing
 func (i *Image) Do(c *Client) {
-	// client, err := c.room.getClient(i.UserID)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// drawing := &drawing.Drawing{
-	// 	ClientID: client.id,
-	// 	Img:      i.Img,
-	// }
-	// c.room.game.drawChan <- drawing
+	drawing := &drawing.Drawing{
+		ClientID: i.UserID,
+		Img:      i.Img,
+	}
+	game := c.room.GetGame().(IGame)
+	game.Drawing(drawing)
 }

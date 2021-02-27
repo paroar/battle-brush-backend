@@ -25,10 +25,13 @@ func NewRouter() *http.Server {
 	r.Handle("/ws/{room}", l)
 	r.HandleFunc("/private/{userid}", func(rw http.ResponseWriter, r *http.Request) {
 		PrivateRoomHandler(l, rw, r)
-	})
+	}).Methods(http.MethodGet)
 	r.HandleFunc("/public/{userid}", func(rw http.ResponseWriter, r *http.Request) {
 		PublicRoomHandler(l, rw, r)
-	})
+	}).Methods(http.MethodGet)
+	r.HandleFunc("/startgame/{roomid}", func(rw http.ResponseWriter, r *http.Request) {
+		StartGameHandler(l, rw, r)
+	}).Methods(http.MethodGet)
 
 	origins := []string{
 		"http://localhost:3000",
