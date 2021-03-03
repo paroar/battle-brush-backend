@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/paroar/battle-brush-backend/lobby"
+	"github.com/paroar/battle-brush-backend/websocket"
 )
 
 var addr = flag.String("addr", ":8085", "http server address")
@@ -18,19 +18,33 @@ func NewRouter() *http.Server {
 
 	r := mux.NewRouter().StrictSlash(true)
 
-	l := lobby.NewLobby()
+	// l := lobby.NewLobby()
 
 	//LOBBY
-	r.Handle("/ws", l)
-	r.Handle("/ws/{room}", l)
+	// r.Handle("/ws", l)
+	// r.Handle("/ws/{room}", l)
+	// r.HandleFunc("/private/{userid}", func(rw http.ResponseWriter, r *http.Request) {
+	// 	PrivateRoomHandler(l, rw, r)
+	// }).Methods(http.MethodGet)
+	// r.HandleFunc("/public/{userid}", func(rw http.ResponseWriter, r *http.Request) {
+	// 	PublicRoomHandler(l, rw, r)
+	// }).Methods(http.MethodGet)
+	// r.HandleFunc("/startgame/{roomid}", func(rw http.ResponseWriter, r *http.Request) {
+	// 	StartGameHandler(l, rw, r)
+	// }).Methods(http.MethodGet)
+
+	ll := websocket.NewLobby()
+	//New
+	r.Handle("/ws", ll)
+	r.Handle("/ws/{room}", ll)
 	r.HandleFunc("/private/{userid}", func(rw http.ResponseWriter, r *http.Request) {
-		PrivateRoomHandler(l, rw, r)
+		HandlePrivateRoom(ll, rw, r)
 	}).Methods(http.MethodGet)
 	r.HandleFunc("/public/{userid}", func(rw http.ResponseWriter, r *http.Request) {
-		PublicRoomHandler(l, rw, r)
+		HandlePublicRoom(ll, rw, r)
 	}).Methods(http.MethodGet)
 	r.HandleFunc("/startgame/{roomid}", func(rw http.ResponseWriter, r *http.Request) {
-		StartGameHandler(l, rw, r)
+		HandleStartGame(ll, rw, r)
 	}).Methods(http.MethodGet)
 
 	origins := []string{
