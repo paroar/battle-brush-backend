@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -57,29 +58,55 @@ func (l *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	roomid := vars["room"]
 
 	if roomid != "" {
-		l.joinByUrl(roomid, client)
+		l.joinByUrl(roomid, client, player)
 	}
 }
 
-func (l *Lobby) joinByUrl(roomid string, client *Client) {
-	players := db.ReadRoomPlayers(roomid)
+func (l *Lobby) joinByUrl(roomid string, client *Client, player *model.Player) {
+
+	room, err := db.ReadRoom(roomid)
+	if err != nil {
+		log.Println(err)
+	}
 
 	msg := &message.Envelope{
 		Type: message.TypeConnection,
 	}
 
-	if players != nil {
+	if err != nil {
+		msg.Content = message.Connection{
+			RoomID: roomid,
+			Status: "room not found",
+		}
+	} else {
 		msg.Content = message.Connection{
 			RoomID:   roomid,
 			Status:   "ok",
 			RoomType: message.RoomTypePrivate,
 		}
-	} else {
-		msg.Content = message.Connection{
-			RoomID: roomid,
-			Status: "room not found",
-		}
 	}
 
 	client.Send <- msg
+
+	updatedPlayers := append(room.PlayersID, player.ID)
+	room.UpdateRoom(updatedPlayers, room.State)
+	db.UpdateRoom(room)
+
+	msg = &message.Envelope{
+		Type: lobby.TypeJoinLeave,
+		Content: lobby.JoinLeave{
+			UserName: player.Name,
+			ID:       player.ID,
+			Msg:      fmt.Sprintf("%s has joined", player.Name),
+		},
+	}
+	l.Broadcast(room.PlayersID, msg)
+}
+
+func (l *Lobby) Broadcast(playersid []string, msg *message.Envelope) {
+	for _, player := range playersid {
+		if client := l.Clients[player]; client != nil {
+			client.Send <- msg
+		}
+	}
 }

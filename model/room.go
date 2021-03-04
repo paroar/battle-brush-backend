@@ -10,25 +10,32 @@ type Room struct {
 	ID        string   `redis:"id"`
 	PlayersID []string `redis:"playersid"`
 	State     string   `redis:"state"`
-	Type      string   `redis:"type"`
+	RoomType  string   `redis:"roomtype"`
 }
 
-func NewRoom() *Room {
+func NewRoom(playerid, roomType string) *Room {
+	players := []string{playerid}
 	return &Room{
 		ID:        uuid.NewString(),
-		PlayersID: make([]string, 0),
-		State:     "Waiting",
-	}
-}
-
-func UpdateRoom(id string, players []string, state string) *Room {
-	return &Room{
-		ID:        id,
 		PlayersID: players,
-		State:     state,
+		State:     "Waiting",
+		RoomType:  roomType,
 	}
 }
 
-func (r *Room) MarshalBinary() ([]byte, error) {
+func (r *Room) UpdateRoom(players []string, state string) {
+	r.PlayersID = players
+	r.State = state
+}
+
+func (r *Room) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(r)
+}
+
+func (r *Room) UnmarshalBinary(data []byte) error {
+	if err := json.Unmarshal(data, &r); err != nil {
+		return err
+	}
+
+	return nil
 }

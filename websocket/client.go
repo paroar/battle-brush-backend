@@ -1,7 +1,13 @@
 package websocket
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
+
 	"github.com/gorilla/websocket"
+	"github.com/paroar/battle-brush-backend/db"
+	"github.com/paroar/battle-brush-backend/lobby"
 	"github.com/paroar/battle-brush-backend/message"
 )
 
@@ -34,7 +40,7 @@ func (c *Client) writePump() {
 
 		err := c.Conn.WriteJSON(msg)
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 	}
 }
@@ -43,10 +49,41 @@ func (c *Client) readPump() {
 	defer c.disconnect()
 
 	for {
+		var raw json.RawMessage
+		msg := &message.Envelope{
+			Content: &raw,
+		}
 
+		err := c.Conn.ReadJSON(&msg)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}
 }
 
 func (c *Client) disconnect() {
+
+	player, err := db.DeletePlayer(c.ID)
+	if err != nil {
+		log.Println(err)
+	} else {
+		msg := &message.Envelope{
+			Type: lobby.TypeJoinLeave,
+			Content: lobby.JoinLeave{
+				UserName: player.Name,
+				ID:       player.ID,
+				Msg:      fmt.Sprintf("%s has left", player.Name),
+			},
+		}
+
+		room, err := db.ReadRoom(player.RoomID)
+		if err != nil {
+			log.Println(err)
+		} else {
+			c.Lobby.Broadcast(room.PlayersID, msg)
+		}
+	}
+
 	c.Conn.Close()
 }

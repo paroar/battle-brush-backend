@@ -2,12 +2,14 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/paroar/battle-brush-backend/db"
 	"github.com/paroar/battle-brush-backend/game"
 	"github.com/paroar/battle-brush-backend/lobby"
+	"github.com/paroar/battle-brush-backend/message"
 	"github.com/paroar/battle-brush-backend/model"
 	"github.com/paroar/battle-brush-backend/websocket"
 )
@@ -98,19 +100,25 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	vars := mux.Vars(r)
 	clientid := vars["userid"]
 
-	_, err := db.ReadPlayer(clientid)
+	player, err := db.ReadPlayer(clientid)
 
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	room := model.NewRoom()
+	room := model.NewRoom(clientid, "Private")
 	db.CreateRoom(room)
-	updatedPlayers := append(room.PlayersID, clientid)
-	room = model.UpdateRoom(room.ID, updatedPlayers, room.State)
-	db.UpdateRoom(room)
-	db.AddPrivateRoom(room.ID)
+
+	msg := &message.Envelope{
+		Type: lobby.TypeJoinLeave,
+		Content: lobby.JoinLeave{
+			UserName: player.Name,
+			ID:       player.ID,
+			Msg:      fmt.Sprintf("%s has joined", player.Name),
+		},
+	}
+	l.Broadcast(room.PlayersID, msg)
 
 	var rJSON RoomIDJSON
 	rJSON.ID = room.ID
@@ -126,25 +134,35 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	clientid := vars["userid"]
 
-	_, err := db.ReadPlayer(clientid)
+	player, err := db.ReadPlayer(clientid)
 
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	roomid, err := db.AvailablePublicRoom()
-	var room *model.Room
+	room, err := db.AvailablePublicRoom()
 	if err != nil {
-		room = model.NewRoom()
+		room = model.NewRoom(clientid, "Public")
 		db.CreateRoom(room)
-		db.AddPublicRoom(room.ID)
 	} else {
-		room = db.ReadRoom(roomid)
 		updatedPlayers := append(room.PlayersID, clientid)
-		updatedRoom := model.UpdateRoom(roomid, updatedPlayers, room.State)
-		db.UpdateRoom(updatedRoom)
+		room.UpdateRoom(updatedPlayers, room.State)
+		db.UpdateRoom(room)
 	}
+
+	player.RoomID = room.ID
+	db.UpdatePlayer(player)
+
+	msg := &message.Envelope{
+		Type: lobby.TypeJoinLeave,
+		Content: lobby.JoinLeave{
+			UserName: player.Name,
+			ID:       player.ID,
+			Msg:      fmt.Sprintf("%s has joined", player.Name),
+		},
+	}
+	l.Broadcast(room.PlayersID, msg)
 
 	var rJSON RoomIDJSON
 	rJSON.ID = room.ID
@@ -160,9 +178,13 @@ func HandleStartGame(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	roomid := vars["roomid"]
 
-	room := db.ReadRoom(roomid)
+	room, err := db.ReadRoom(roomid)
+	if err != nil {
+		http.Error(rw, "Couldn't start the game", http.StatusBadRequest)
+		return
+	}
 	room.State = "Drawing"
-	db.CreateRoom(room)
+	db.UpdateRoom(room)
 
 	game := game.NewDrawGame(roomid, room.PlayersID)
 	go game.StartGame()
