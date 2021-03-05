@@ -6,6 +6,7 @@ import (
 	"github.com/paroar/battle-brush-backend/model"
 )
 
+// CreatePlayer creates a player on redis database
 func CreatePlayer(p *model.Player) {
 	rdb := playerRedisConnection()
 
@@ -15,6 +16,7 @@ func CreatePlayer(p *model.Player) {
 	}
 }
 
+// ReadPlayer reads a player from redis database
 func ReadPlayer(id string) (*model.Player, error) {
 	rdb := playerRedisConnection()
 
@@ -31,6 +33,7 @@ func ReadPlayer(id string) (*model.Player, error) {
 	return &p, nil
 }
 
+// UpdatePlayer updates a player from redis database
 func UpdatePlayer(p *model.Player) {
 	rdb := playerRedisConnection()
 
@@ -41,6 +44,8 @@ func UpdatePlayer(p *model.Player) {
 
 }
 
+// DeletePlayer deletes a player from redis database and
+// updates the room if it was in one
 func DeletePlayer(id string) (*model.Player, error) {
 	rdb := playerRedisConnection()
 
@@ -74,6 +79,7 @@ func DeletePlayer(id string) (*model.Player, error) {
 	return player, nil
 }
 
+// ReadPlayersNames gets players names of the room
 func ReadPlayersNames(playersid []string) []string {
 	playersNames := []string{}
 	for _, p := range playersid {

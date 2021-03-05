@@ -18,47 +18,29 @@ func NewRouter() *http.Server {
 
 	r := mux.NewRouter().StrictSlash(true)
 
-	// l := lobby.NewLobby()
+	l := websocket.NewLobby()
+	r.Handle("/ws", l)
+	r.Handle("/ws/{room}", l)
 
-	//LOBBY
-	// r.Handle("/ws", l)
-	// r.Handle("/ws/{room}", l)
-	// r.HandleFunc("/private/{userid}", func(rw http.ResponseWriter, r *http.Request) {
-	// 	PrivateRoomHandler(l, rw, r)
-	// }).Methods(http.MethodGet)
-	// r.HandleFunc("/public/{userid}", func(rw http.ResponseWriter, r *http.Request) {
-	// 	PublicRoomHandler(l, rw, r)
-	// }).Methods(http.MethodGet)
-	// r.HandleFunc("/startgame/{roomid}", func(rw http.ResponseWriter, r *http.Request) {
-	// 	StartGameHandler(l, rw, r)
-	// }).Methods(http.MethodGet)
-
-	ll := websocket.NewLobby()
-	//New
-	r.Handle("/ws", ll)
-	r.Handle("/ws/{room}", ll)
 	r.HandleFunc("/private/{userid}", func(rw http.ResponseWriter, r *http.Request) {
-		HandlePrivateRoom(ll, rw, r)
+		HandlePrivateRoom(l, rw, r)
 	}).Methods(http.MethodGet)
 	r.HandleFunc("/public/{userid}", func(rw http.ResponseWriter, r *http.Request) {
-		HandlePublicRoom(ll, rw, r)
+		HandlePublicRoom(l, rw, r)
 	}).Methods(http.MethodGet)
 	r.HandleFunc("/startgame/{roomid}", func(rw http.ResponseWriter, r *http.Request) {
-		HandleStartGame(ll, rw, r)
+		HandleStartGame(l, rw, r)
 	}).Methods(http.MethodGet)
+	r.HandleFunc("/chat", func(rw http.ResponseWriter, r *http.Request) {
+		HandleChat(l, rw, r)
+	}).Methods(http.MethodPost)
 
 	origins := []string{
 		"http://localhost:3000",
 	}
 	allowedOrigins := handlers.AllowedOrigins(origins)
 
-	methods := []string{
-		http.MethodGet,
-		http.MethodOptions,
-	}
-	allowedMethods := handlers.AllowedMethods(methods)
-
-	handler := handlers.CORS(allowedOrigins, allowedMethods)
+	handler := handlers.CORS(allowedOrigins)
 	s := http.Server{
 		Addr:    *addr,
 		Handler: handler(r),

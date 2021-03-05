@@ -8,15 +8,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/paroar/battle-brush-backend/db"
-	"github.com/paroar/battle-brush-backend/lobby"
 	"github.com/paroar/battle-brush-backend/message"
+	"github.com/paroar/battle-brush-backend/message/content"
 	"github.com/paroar/battle-brush-backend/model"
 )
 
+// Lobby struct
 type Lobby struct {
 	Clients map[string]*Client
 }
 
+// NewLobby constructor
 func NewLobby() *Lobby {
 	return &Lobby{
 		Clients: make(map[string]*Client),
@@ -45,8 +47,8 @@ func (l *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	client.Run()
 
 	msg := &message.Envelope{
-		Type: lobby.TypeLogin,
-		Content: lobby.Login{
+		Type: content.TypeLogin,
+		Content: content.Login{
 			UserName: player.Name,
 			ID:       player.ID,
 		},
@@ -58,11 +60,11 @@ func (l *Lobby) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	roomid := vars["room"]
 
 	if roomid != "" {
-		l.joinByUrl(roomid, client, player)
+		l.joinByURL(roomid, client, player)
 	}
 }
 
-func (l *Lobby) joinByUrl(roomid string, client *Client, player *model.Player) {
+func (l *Lobby) joinByURL(roomid string, client *Client, player *model.Player) {
 
 	room, err := db.ReadRoom(roomid)
 	if err != nil {
@@ -74,15 +76,15 @@ func (l *Lobby) joinByUrl(roomid string, client *Client, player *model.Player) {
 	}
 
 	if err != nil {
-		msg.Content = message.Connection{
+		msg.Content = content.Connection{
 			RoomID: roomid,
 			Status: "room not found",
 		}
 	} else {
-		msg.Content = message.Connection{
+		msg.Content = content.Connection{
 			RoomID:   roomid,
 			Status:   "ok",
-			RoomType: message.RoomTypePrivate,
+			RoomType: model.RoomTypePrivate,
 		}
 	}
 
@@ -97,16 +99,16 @@ func (l *Lobby) joinByUrl(roomid string, client *Client, player *model.Player) {
 
 	playersNames := db.ReadPlayersNames(room.PlayersID)
 	msg = &message.Envelope{
-		Type: lobby.TypePlayers,
-		Content: lobby.Players{
+		Type: content.TypePlayers,
+		Content: content.Players{
 			UserNames: playersNames,
 		},
 	}
 	l.Broadcast(room.PlayersID, msg)
 
 	msg = &message.Envelope{
-		Type: lobby.TypeJoinLeave,
-		Content: lobby.JoinLeave{
+		Type: content.TypeJoinLeave,
+		Content: content.JoinLeave{
 			UserName: player.Name,
 			ID:       player.ID,
 			Msg:      fmt.Sprintf("%s has joined", player.Name),
@@ -115,6 +117,7 @@ func (l *Lobby) joinByUrl(roomid string, client *Client, player *model.Player) {
 	l.Broadcast(room.PlayersID, msg)
 }
 
+// Broadcast a message to players
 func (l *Lobby) Broadcast(playersid []string, msg *message.Envelope) {
 	for _, player := range playersid {
 		if client := l.Clients[player]; client != nil {

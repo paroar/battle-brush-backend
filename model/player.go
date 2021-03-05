@@ -7,12 +7,14 @@ import (
 	"github.com/paroar/battle-brush-backend/generators"
 )
 
+// Player struct
 type Player struct {
 	ID     string `redis:"id"`
 	Name   string `redis:"name"`
 	RoomID string `redis:"roomid"`
 }
 
+// NewPlayer constructor
 func NewPlayer() *Player {
 	return &Player{
 		ID:   uuid.NewString(),
@@ -20,10 +22,12 @@ func NewPlayer() *Player {
 	}
 }
 
+// MarshalBinary marshaler
 func (p *Player) MarshalBinary() (data []byte, err error) {
 	return json.Marshal(p)
 }
 
+// UnmarshalBinary unmarshaler
 func (p *Player) UnmarshalBinary(data []byte) error {
 	if err := json.Unmarshal(data, &p); err != nil {
 		return err

@@ -6,7 +6,7 @@ import (
 	"github.com/paroar/battle-brush-backend/model"
 )
 
-//CREATE
+//CreateRoom creates a room on redis database
 func CreateRoom(r *model.Room) {
 	rdb := roomRedisConnection()
 
@@ -16,7 +16,7 @@ func CreateRoom(r *model.Room) {
 	}
 }
 
-//READ
+//ReadRoom gets a room from redis database
 func ReadRoom(id string) (*model.Room, error) {
 	rdb := roomRedisConnection()
 
@@ -33,7 +33,7 @@ func ReadRoom(id string) (*model.Room, error) {
 	return &r, nil
 }
 
-//UPDATE
+//UpdateRoom updates a room from redis database
 func UpdateRoom(r *model.Room) {
 	rdb := roomRedisConnection()
 
@@ -43,8 +43,8 @@ func UpdateRoom(r *model.Room) {
 	}
 }
 
-//DELETE
-func deleteRoom(id string) {
+//DeleteRoom updates a room from redis database
+func DeleteRoom(id string) {
 	rdb := roomRedisConnection()
 
 	err := rdb.Del(ctx, id).Err()
@@ -53,17 +53,7 @@ func deleteRoom(id string) {
 	}
 }
 
-func ReadRoomPlayers(id string) []string {
-	rdb := roomRedisConnection()
-
-	val, err := rdb.SMembers(ctx, id).Result()
-	if err != nil {
-		panic(err)
-	}
-
-	return val
-}
-
+//AvailablePublicRoom gets the first available room if it exists from redis database
 func AvailablePublicRoom() (*model.Room, error) {
 	rdb := roomRedisConnection()
 

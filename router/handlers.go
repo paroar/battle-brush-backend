@@ -7,92 +7,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/paroar/battle-brush-backend/db"
-	"github.com/paroar/battle-brush-backend/game"
-	"github.com/paroar/battle-brush-backend/lobby"
+	"github.com/paroar/battle-brush-backend/games"
 	"github.com/paroar/battle-brush-backend/message"
+	"github.com/paroar/battle-brush-backend/message/content"
 	"github.com/paroar/battle-brush-backend/model"
 	"github.com/paroar/battle-brush-backend/websocket"
 )
-
-//PrivateRoomHandler handler for creating private rooms
-func PrivateRoomHandler(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	clientid := vars["userid"]
-
-	client, err := l.GetClient(clientid)
-	if err != nil {
-		http.Error(rw, "Client not found", http.StatusBadRequest)
-		return
-	}
-
-	room := lobby.NewPrivateRoom().(lobby.IRoom)
-	l.AddRoom(room)
-	room.JoinClient(client)
-
-	var rJSON RoomIDJSON
-	rJSON.ID = room.GetID()
-	res, _ := json.Marshal(&rJSON)
-
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(res)
-
-}
-
-//PublicRoomHandler handler for creating public rooms
-func PublicRoomHandler(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	clientid := vars["userid"]
-
-	client, err := l.GetClient(clientid)
-	if err != nil {
-		http.Error(rw, "Client not found", http.StatusBadRequest)
-		return
-	}
-
-	ro := l.FirstAvailablePublicRoom()
-	var room lobby.IRoom
-	if ro == nil {
-		room = lobby.NewPublicRoom().(lobby.IRoom)
-		l.AddRoom(room)
-	} else {
-		room = ro.(lobby.IRoom)
-	}
-
-	room.JoinClient(client)
-
-	var rJSON RoomIDJSON
-	rJSON.ID = room.GetID()
-	res, _ := json.Marshal(&rJSON)
-
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(res)
-
-}
-
-//StartGameHandler handler for starting games
-func StartGameHandler(l *lobby.Lobby, rw http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	roomid := vars["roomid"]
-
-	room := l.GetRoom(roomid)
-	var ro lobby.IRoom
-	if room != nil {
-		ro = room.(lobby.IRoom)
-	} else {
-		http.Error(rw, "Room not found", http.StatusBadRequest)
-		return
-	}
-
-	game := ro.GetGame().(lobby.IGame)
-	go game.StartGame()
-
-	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte(""))
-
-}
 
 //HandlePrivateRoom handler for creating private rooms
 func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
@@ -112,16 +32,16 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 
 	playersNames := db.ReadPlayersNames(room.PlayersID)
 	msg := &message.Envelope{
-		Type: lobby.TypePlayers,
-		Content: lobby.Players{
+		Type: content.TypePlayers,
+		Content: content.Players{
 			UserNames: playersNames,
 		},
 	}
 	l.Broadcast(room.PlayersID, msg)
 
 	msg = &message.Envelope{
-		Type: lobby.TypeJoinLeave,
-		Content: lobby.JoinLeave{
+		Type: content.TypeJoinLeave,
+		Content: content.JoinLeave{
 			UserName: player.Name,
 			ID:       player.ID,
 			Msg:      fmt.Sprintf("%s has joined", player.Name),
@@ -129,11 +49,11 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	}
 	l.Broadcast(room.PlayersID, msg)
 
-	var rJSON RoomIDJSON
+	var rJSON roomIDJSON
 	rJSON.ID = room.ID
 	res, _ := json.Marshal(&rJSON)
 
-	rw.WriteHeader(http.StatusOK)
+	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(res)
 }
 
@@ -165,16 +85,16 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 
 	playersNames := db.ReadPlayersNames(room.PlayersID)
 	msg := &message.Envelope{
-		Type: lobby.TypePlayers,
-		Content: lobby.Players{
+		Type: content.TypePlayers,
+		Content: content.Players{
 			UserNames: playersNames,
 		},
 	}
 	l.Broadcast(room.PlayersID, msg)
 
 	msg = &message.Envelope{
-		Type: lobby.TypeJoinLeave,
-		Content: lobby.JoinLeave{
+		Type: content.TypeJoinLeave,
+		Content: content.JoinLeave{
 			UserName: player.Name,
 			ID:       player.ID,
 			Msg:      fmt.Sprintf("%s has joined", player.Name),
@@ -182,11 +102,11 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 	}
 	l.Broadcast(room.PlayersID, msg)
 
-	var rJSON RoomIDJSON
+	var rJSON roomIDJSON
 	rJSON.ID = room.ID
 	res, _ := json.Marshal(&rJSON)
 
-	rw.WriteHeader(http.StatusOK)
+	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(res)
 }
 
@@ -204,9 +124,31 @@ func HandleStartGame(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request
 	room.State = "Drawing"
 	db.UpdateRoom(room)
 
-	game := game.NewDrawGame(roomid, room.PlayersID)
+	game := games.NewDrawGame(roomid, room.PlayersID)
 	go game.StartGame()
 
-	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte(""))
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write([]byte("Game started"))
+}
+
+//HandleChat handler manages chat
+func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
+	var chat chat
+	json.NewDecoder(r.Body).Decode(&chat)
+
+	room, err := db.ReadRoom(chat.Roomid)
+	if err != nil {
+		http.Error(rw, "Room not found", http.StatusBadRequest)
+		return
+	}
+
+	msg := &message.Envelope{
+		Type:    content.TypeChat,
+		Content: chat,
+	}
+
+	l.Broadcast(room.PlayersID, msg)
+
+	rw.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(rw).Encode(chat)
 }

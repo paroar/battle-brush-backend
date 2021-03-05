@@ -7,10 +7,11 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/paroar/battle-brush-backend/db"
-	"github.com/paroar/battle-brush-backend/lobby"
 	"github.com/paroar/battle-brush-backend/message"
+	"github.com/paroar/battle-brush-backend/message/content"
 )
 
+// Client struct
 type Client struct {
 	ID    string
 	Conn  *websocket.Conn
@@ -18,6 +19,7 @@ type Client struct {
 	Send  chan *message.Envelope
 }
 
+// NewClient contructor
 func NewClient(id string, conn *websocket.Conn, lobby *Lobby) *Client {
 	return &Client{
 		ID:    id,
@@ -27,6 +29,7 @@ func NewClient(id string, conn *websocket.Conn, lobby *Lobby) *Client {
 	}
 }
 
+// Run gets the websocket connection running in parallel
 func (c *Client) Run() {
 	go c.readPump()
 	go c.writePump()
@@ -63,7 +66,6 @@ func (c *Client) readPump() {
 }
 
 func (c *Client) disconnect() {
-
 	defer c.Conn.Close()
 
 	player, err := db.DeletePlayer(c.ID)
@@ -82,16 +84,16 @@ func (c *Client) disconnect() {
 	playersNames := db.ReadPlayersNames(room.PlayersID)
 
 	msg := &message.Envelope{
-		Type: lobby.TypePlayers,
-		Content: lobby.Players{
+		Type: content.TypePlayers,
+		Content: content.Players{
 			UserNames: playersNames,
 		},
 	}
 	c.Lobby.Broadcast(room.PlayersID, msg)
 
 	msg = &message.Envelope{
-		Type: lobby.TypeJoinLeave,
-		Content: lobby.JoinLeave{
+		Type: content.TypeJoinLeave,
+		Content: content.JoinLeave{
 			UserName: player.Name,
 			ID:       player.ID,
 			Msg:      fmt.Sprintf("%s has left", player.Name),

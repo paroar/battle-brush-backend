@@ -1,4 +1,4 @@
-package lobby
+package content
 
 // Common Message types
 const (
@@ -18,7 +18,6 @@ const (
 var TypeHandler = map[int]func() interface{}{
 	TypeLogin:      func() interface{} { return &Login{} },
 	TypeJoinLeave:  func() interface{} { return &JoinLeave{} },
-	TypeChat:       func() interface{} { return &Chat{} },
 	TypePlayers:    func() interface{} { return &Players{} },
 	TypeGameState:  func() interface{} { return &GameState{} },
 	TypeImage:      func() interface{} { return &Image{} },
