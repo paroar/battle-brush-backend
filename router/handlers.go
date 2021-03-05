@@ -110,7 +110,16 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	room := model.NewRoom(clientid, "Private")
 	db.CreateRoom(room)
 
+	playersNames := db.ReadPlayersNames(room.PlayersID)
 	msg := &message.Envelope{
+		Type: lobby.TypePlayers,
+		Content: lobby.Players{
+			UserNames: playersNames,
+		},
+	}
+	l.Broadcast(room.PlayersID, msg)
+
+	msg = &message.Envelope{
 		Type: lobby.TypeJoinLeave,
 		Content: lobby.JoinLeave{
 			UserName: player.Name,
@@ -154,7 +163,16 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 	player.RoomID = room.ID
 	db.UpdatePlayer(player)
 
+	playersNames := db.ReadPlayersNames(room.PlayersID)
 	msg := &message.Envelope{
+		Type: lobby.TypePlayers,
+		Content: lobby.Players{
+			UserNames: playersNames,
+		},
+	}
+	l.Broadcast(room.PlayersID, msg)
+
+	msg = &message.Envelope{
 		Type: lobby.TypeJoinLeave,
 		Content: lobby.JoinLeave{
 			UserName: player.Name,

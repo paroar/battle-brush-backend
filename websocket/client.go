@@ -64,26 +64,39 @@ func (c *Client) readPump() {
 
 func (c *Client) disconnect() {
 
+	defer c.Conn.Close()
+
 	player, err := db.DeletePlayer(c.ID)
 	if err != nil {
 		log.Println(err)
-	} else {
-		msg := &message.Envelope{
-			Type: lobby.TypeJoinLeave,
-			Content: lobby.JoinLeave{
-				UserName: player.Name,
-				ID:       player.ID,
-				Msg:      fmt.Sprintf("%s has left", player.Name),
-			},
-		}
+		return
+	}
+	delete(c.Lobby.Clients, c.ID)
 
-		room, err := db.ReadRoom(player.RoomID)
-		if err != nil {
-			log.Println(err)
-		} else {
-			c.Lobby.Broadcast(room.PlayersID, msg)
-		}
+	room, err := db.ReadRoom(player.RoomID)
+	if err != nil {
+		log.Println(err)
+		return
 	}
 
-	c.Conn.Close()
+	playersNames := db.ReadPlayersNames(room.PlayersID)
+
+	msg := &message.Envelope{
+		Type: lobby.TypePlayers,
+		Content: lobby.Players{
+			UserNames: playersNames,
+		},
+	}
+	c.Lobby.Broadcast(room.PlayersID, msg)
+
+	msg = &message.Envelope{
+		Type: lobby.TypeJoinLeave,
+		Content: lobby.JoinLeave{
+			UserName: player.Name,
+			ID:       player.ID,
+			Msg:      fmt.Sprintf("%s has left", player.Name),
+		},
+	}
+	c.Lobby.Broadcast(room.PlayersID, msg)
+
 }

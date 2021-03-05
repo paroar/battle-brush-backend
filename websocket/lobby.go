@@ -92,6 +92,18 @@ func (l *Lobby) joinByUrl(roomid string, client *Client, player *model.Player) {
 	room.UpdateRoom(updatedPlayers, room.State)
 	db.UpdateRoom(room)
 
+	player.RoomID = room.ID
+	db.UpdatePlayer(player)
+
+	playersNames := db.ReadPlayersNames(room.PlayersID)
+	msg = &message.Envelope{
+		Type: lobby.TypePlayers,
+		Content: lobby.Players{
+			UserNames: playersNames,
+		},
+	}
+	l.Broadcast(room.PlayersID, msg)
+
 	msg = &message.Envelope{
 		Type: lobby.TypeJoinLeave,
 		Content: lobby.JoinLeave{

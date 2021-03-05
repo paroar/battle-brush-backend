@@ -1,6 +1,8 @@
 package db
 
 import (
+	"log"
+
 	"github.com/paroar/battle-brush-backend/model"
 )
 
@@ -70,4 +72,18 @@ func DeletePlayer(id string) (*model.Player, error) {
 	}
 
 	return player, nil
+}
+
+func ReadPlayersNames(playersid []string) []string {
+	playersNames := []string{}
+	for _, p := range playersid {
+		player, err := ReadPlayer(p)
+		if err != nil {
+			log.Println(err)
+		} else {
+			playersNames = append(playersNames, player.Name)
+		}
+	}
+
+	return playersNames
 }
