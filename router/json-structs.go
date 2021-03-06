@@ -10,3 +10,14 @@ type chat struct {
 	Username string `json:"username"`
 	Msg      string `json:"msg"`
 }
+
+type img struct {
+	Playerid string `json:"playerid"`
+	Roomid   string `json:"roomid"`
+	Img      string `json:"img"`
+}
+
+type vote struct {
+	PlayerID string  `json:"playerid"`
+	Vote     float64 `json:"vote"`
+}

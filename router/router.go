@@ -34,6 +34,8 @@ func NewRouter() *http.Server {
 	r.HandleFunc("/chat", func(rw http.ResponseWriter, r *http.Request) {
 		HandleChat(l, rw, r)
 	}).Methods(http.MethodPost)
+	r.HandleFunc("/img", HandleImg).Methods(http.MethodPost)
+	r.HandleFunc("/vote", HandleVote).Methods(http.MethodPost)
 
 	origins := []string{
 		"http://localhost:3000",

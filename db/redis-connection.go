@@ -26,11 +26,20 @@ func roomRedisConnection() *redis.Client {
 	return rdb
 }
 
-func drawingRedisConnection() *redis.Client {
+func imgRedisConnection() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
-		DB:       1,
+		DB:       2,
+	})
+	return rdb
+}
+
+func voteRedisConnection() *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       3,
 	})
 	return rdb
 }

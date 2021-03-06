@@ -12,7 +12,7 @@ func CreatePlayer(p *model.Player) {
 
 	err := rdb.HSet(ctx, p.ID, "player", p).Err()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }
 
@@ -22,7 +22,7 @@ func ReadPlayer(id string) (*model.Player, error) {
 
 	res, err := rdb.HGetAll(ctx, id).Result()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	var p model.Player
@@ -39,7 +39,7 @@ func UpdatePlayer(p *model.Player) {
 
 	err := rdb.HSet(ctx, p.ID, "player", p).Err()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 }
@@ -51,14 +51,14 @@ func DeletePlayer(id string) (*model.Player, error) {
 
 	player, err := ReadPlayer(id)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	roomid := player.RoomID
 	if roomid != "" {
 		room, err := ReadRoom(roomid)
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 		updatedPlayers := []string{}
 		players := room.PlayersID
@@ -73,7 +73,7 @@ func DeletePlayer(id string) (*model.Player, error) {
 
 	err = rdb.Del(ctx, id).Err()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	return player, nil

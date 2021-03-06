@@ -125,7 +125,7 @@ func HandleStartGame(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request
 	db.UpdateRoom(room)
 
 	game := games.NewDrawGame(roomid, room.PlayersID)
-	go game.StartGame()
+	go game.StartGame(l)
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write([]byte("Game started"))
@@ -151,4 +151,28 @@ func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
 
 	rw.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(rw).Encode(chat)
+}
+
+//HandleImg handler manages img
+func HandleImg(rw http.ResponseWriter, r *http.Request) {
+	var img img
+	json.NewDecoder(r.Body).Decode(&img)
+
+	drawing := model.NewDrawing(img.Playerid, img.Playerid, img.Img)
+	db.CreateDrawing(drawing)
+
+	rw.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(rw).Encode(img)
+}
+
+//HandleVote handler manages img
+func HandleVote(rw http.ResponseWriter, r *http.Request) {
+	var v vote
+	json.NewDecoder(r.Body).Decode(&v)
+
+	vote := model.NewVote(v.PlayerID, v.Vote)
+	db.CreateVote(vote)
+
+	rw.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(rw).Encode(vote)
 }

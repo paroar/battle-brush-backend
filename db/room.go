@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"log"
 
 	"github.com/paroar/battle-brush-backend/model"
 )
@@ -12,7 +13,7 @@ func CreateRoom(r *model.Room) {
 
 	err := rdb.HSet(ctx, r.ID, "room", r).Err()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }
 
@@ -22,7 +23,7 @@ func ReadRoom(id string) (*model.Room, error) {
 
 	res, err := rdb.HGetAll(ctx, id).Result()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	var r model.Room
@@ -39,7 +40,7 @@ func UpdateRoom(r *model.Room) {
 
 	err := rdb.HSet(ctx, r.ID, "room", r).Err()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }
 
@@ -49,7 +50,7 @@ func DeleteRoom(id string) {
 
 	err := rdb.Del(ctx, id).Err()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }
 
@@ -64,7 +65,7 @@ func AvailablePublicRoom() (*model.Room, error) {
 
 		res, err := rdb.HGetAll(ctx, roomid).Result()
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 
 		var r model.Room
