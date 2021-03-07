@@ -2,6 +2,7 @@ package games
 
 import (
 	"log"
+	"sort"
 	"time"
 
 	"github.com/paroar/battle-brush-backend/db"
@@ -17,6 +18,11 @@ import (
 type DrawGame struct {
 	ID      string
 	Players []string
+}
+
+type score struct {
+	ID       string
+	AvgScore float64
 }
 
 // NewDrawGame constructor
@@ -81,17 +87,20 @@ func (d *DrawGame) broadcastWinner(l *websocket.Lobby, img, playerid, username s
 	l.Broadcast(d.Players, msg)
 }
 
-func (d *DrawGame) winnerID() string {
-	var winnerid string
-	var maxScore float64
+func (d *DrawGame) winnerID() []score {
+	scores := []score{}
+
 	for _, p := range d.Players {
 		votes := db.ReadVotes(p)
 		avg := utils.Average(votes)
-		if avg >= maxScore {
-			winnerid = p
-		}
+		scores = append(scores, score{ID: p, AvgScore: avg})
 	}
-	return winnerid
+
+	sort.SliceStable(scores, func(i, j int) bool {
+		return scores[i].AvgScore < scores[j].AvgScore
+	})
+
+	return scores
 }
 
 func (d *DrawGame) changeState(room *model.Room, l *websocket.Lobby, state string, sec time.Duration) {
@@ -109,10 +118,24 @@ func (d *DrawGame) cleaning() {
 }
 
 func (d *DrawGame) win(room *model.Room, l *websocket.Lobby) {
-	winnerid := d.winnerID()
-	player, _ := db.ReadPlayer(winnerid)
-	drawing, _ := db.ReadDrawing(winnerid)
-	d.broadcastWinner(l, drawing.Img, player.ID, player.Name)
+	scores := d.winnerID()
+
+	for _, s := range scores {
+		player, err := db.ReadPlayer(s.ID)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		drawing, err := db.ReadDrawing(s.ID)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		d.broadcastWinner(l, drawing.Img, player.ID, player.Name)
+		d.changeState(room, l, StateWinner, 5)
+		return
+	}
+
 	d.changeState(room, l, StateWinner, 5)
 }
 
