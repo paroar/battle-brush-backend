@@ -1,23 +1,23 @@
 package router
 
-type roomIDJSON struct {
+type roomJSON struct {
 	ID string `json:"roomid"`
 }
 
-type chat struct {
+type chatJSON struct {
 	Roomid   string `json:"roomid"`
 	Playerid string `json:"playerid"`
 	Username string `json:"username"`
 	Msg      string `json:"msg"`
 }
 
-type img struct {
+type imgJSON struct {
 	Playerid string `json:"playerid"`
 	Roomid   string `json:"roomid"`
 	Img      string `json:"img"`
 }
 
-type vote struct {
+type voteJSON struct {
 	PlayerID string  `json:"playerid"`
 	Vote     float64 `json:"vote"`
 }

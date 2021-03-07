@@ -49,7 +49,7 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	}
 	l.Broadcast(room.PlayersID, msg)
 
-	var rJSON roomIDJSON
+	var rJSON roomJSON
 	rJSON.ID = room.ID
 	res, _ := json.Marshal(&rJSON)
 
@@ -102,7 +102,7 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 	}
 	l.Broadcast(room.PlayersID, msg)
 
-	var rJSON roomIDJSON
+	var rJSON roomJSON
 	rJSON.ID = room.ID
 	res, _ := json.Marshal(&rJSON)
 
@@ -133,7 +133,7 @@ func HandleStartGame(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request
 
 //HandleChat handler manages chat
 func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
-	var chat chat
+	var chat chatJSON
 	json.NewDecoder(r.Body).Decode(&chat)
 
 	room, err := db.ReadRoom(chat.Roomid)
@@ -155,7 +155,7 @@ func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
 
 //HandleImg handler manages img
 func HandleImg(rw http.ResponseWriter, r *http.Request) {
-	var img img
+	var img imgJSON
 	json.NewDecoder(r.Body).Decode(&img)
 
 	drawing := model.NewDrawing(img.Playerid, img.Playerid, img.Img)
@@ -167,7 +167,7 @@ func HandleImg(rw http.ResponseWriter, r *http.Request) {
 
 //HandleVote handler manages img
 func HandleVote(rw http.ResponseWriter, r *http.Request) {
-	var v vote
+	var v voteJSON
 	json.NewDecoder(r.Body).Decode(&v)
 
 	vote := model.NewVote(v.PlayerID, v.Vote)
