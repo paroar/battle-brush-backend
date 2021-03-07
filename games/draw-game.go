@@ -79,7 +79,7 @@ func (d *DrawGame) winnerID() []score {
 	}
 
 	sort.SliceStable(scores, func(i, j int) bool {
-		return scores[i].AvgScore < scores[j].AvgScore
+		return scores[i].AvgScore > scores[j].AvgScore
 	})
 
 	return scores
