@@ -7,7 +7,6 @@ import (
 
 	"github.com/paroar/battle-brush-backend/db"
 	"github.com/paroar/battle-brush-backend/generators"
-	"github.com/paroar/battle-brush-backend/message"
 	"github.com/paroar/battle-brush-backend/message/content"
 	"github.com/paroar/battle-brush-backend/model"
 	"github.com/paroar/battle-brush-backend/utils"
@@ -55,35 +54,18 @@ func (d *DrawGame) StartGame(l *websocket.Lobby) {
 }
 
 func (d *DrawGame) broadcastState(l *websocket.Lobby, state string) {
-	msg := &message.Envelope{
-		Type: content.TypeGameState,
-		Content: content.GameState{
-			State: state,
-		},
-	}
+	msg := content.NewGameState(state)
 	l.Broadcast(d.Players, msg)
 }
 
 func (d *DrawGame) setRandomTheme(l *websocket.Lobby) {
 	theme := generators.Theme()
-	msg := &message.Envelope{
-		Type: content.TypeTheme,
-		Content: content.Theme{
-			Theme: theme,
-		},
-	}
+	msg := content.NewTheme(theme)
 	l.Broadcast(d.Players, msg)
 }
 
 func (d *DrawGame) broadcastWinner(l *websocket.Lobby, img, playerid, username string) {
-	msg := &message.Envelope{
-		Type: content.TypeWinner,
-		Content: content.Image{
-			Img:      img,
-			UserID:   playerid,
-			UserName: username,
-		},
-	}
+	msg := content.NewWinner(img, playerid, username)
 	l.Broadcast(d.Players, msg)
 }
 
@@ -147,17 +129,11 @@ func (d *DrawGame) voting(room *model.Room, l *websocket.Lobby) {
 			log.Println(err)
 			continue
 		}
-		msg := &message.Envelope{
-			Type: content.TypeImage,
-			Content: content.Image{
-				UserID: p,
-				Img:    img.Img,
-			},
-		}
+		msg := content.NewImage(img.Img, img.PlayerID)
 		l.Broadcast(d.Players, msg)
 
-		d.changeState(room, l, StateVoting, 3)
-		d.changeState(room, l, StateRecolectingVotes, 1)
+		d.changeState(room, l, StateVoting, 5)
+		d.changeState(room, l, StateRecolectingVotes, 2)
 		d.changeState(room, l, StateLoading, 1)
 	}
 }

@@ -2,13 +2,11 @@ package router
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/paroar/battle-brush-backend/db"
 	"github.com/paroar/battle-brush-backend/games"
-	"github.com/paroar/battle-brush-backend/message"
 	"github.com/paroar/battle-brush-backend/message/content"
 	"github.com/paroar/battle-brush-backend/model"
 	"github.com/paroar/battle-brush-backend/websocket"
@@ -31,22 +29,10 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	db.CreateRoom(room)
 
 	playersNames := db.ReadPlayersNames(room.PlayersID)
-	msg := &message.Envelope{
-		Type: content.TypePlayers,
-		Content: content.Players{
-			UserNames: playersNames,
-		},
-	}
+	msg := content.NewPlayers(playersNames)
 	l.Broadcast(room.PlayersID, msg)
 
-	msg = &message.Envelope{
-		Type: content.TypeJoinLeave,
-		Content: content.JoinLeave{
-			UserName: player.Name,
-			ID:       player.ID,
-			Msg:      fmt.Sprintf("%s has joined", player.Name),
-		},
-	}
+	msg = content.NewJoinLeave(player, "has joined")
 	l.Broadcast(room.PlayersID, msg)
 
 	var rJSON roomJSON
@@ -84,22 +70,10 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 	db.UpdatePlayer(player)
 
 	playersNames := db.ReadPlayersNames(room.PlayersID)
-	msg := &message.Envelope{
-		Type: content.TypePlayers,
-		Content: content.Players{
-			UserNames: playersNames,
-		},
-	}
+	msg := content.NewPlayers(playersNames)
 	l.Broadcast(room.PlayersID, msg)
 
-	msg = &message.Envelope{
-		Type: content.TypeJoinLeave,
-		Content: content.JoinLeave{
-			UserName: player.Name,
-			ID:       player.ID,
-			Msg:      fmt.Sprintf("%s has joined", player.Name),
-		},
-	}
+	msg = content.NewJoinLeave(player, "has joined")
 	l.Broadcast(room.PlayersID, msg)
 
 	var rJSON roomJSON
@@ -134,7 +108,11 @@ func HandleStartGame(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request
 //HandleChat handler manages chat
 func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
 	var chat chatJSON
-	json.NewDecoder(r.Body).Decode(&chat)
+	err := json.NewDecoder(r.Body).Decode(&chat)
+	if err != nil {
+		http.Error(rw, "Couldn't decode chat", http.StatusBadRequest)
+		return
+	}
 
 	room, err := db.ReadRoom(chat.Roomid)
 	if err != nil {
@@ -142,11 +120,7 @@ func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := &message.Envelope{
-		Type:    content.TypeChat,
-		Content: chat,
-	}
-
+	msg := content.NewChat(chat.Roomid, chat.Playerid, chat.Username, chat.Msg)
 	l.Broadcast(room.PlayersID, msg)
 
 	rw.Header().Set("Content-Type", "application/json")
@@ -168,7 +142,11 @@ func HandleImg(rw http.ResponseWriter, r *http.Request) {
 //HandleVote handler manages img
 func HandleVote(rw http.ResponseWriter, r *http.Request) {
 	var v voteJSON
-	json.NewDecoder(r.Body).Decode(&v)
+	err := json.NewDecoder(r.Body).Decode(&v)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	vote := model.NewVote(v.PlayerID, v.Vote)
 	db.CreateVote(vote)

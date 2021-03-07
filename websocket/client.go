@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -82,23 +81,10 @@ func (c *Client) disconnect() {
 	}
 
 	playersNames := db.ReadPlayersNames(room.PlayersID)
-
-	msg := &message.Envelope{
-		Type: content.TypePlayers,
-		Content: content.Players{
-			UserNames: playersNames,
-		},
-	}
+	msg := content.NewPlayers(playersNames)
 	c.Lobby.Broadcast(room.PlayersID, msg)
 
-	msg = &message.Envelope{
-		Type: content.TypeJoinLeave,
-		Content: content.JoinLeave{
-			UserName: player.Name,
-			ID:       player.ID,
-			Msg:      fmt.Sprintf("%s has left", player.Name),
-		},
-	}
+	msg = content.NewJoinLeave(player, "has left")
 	c.Lobby.Broadcast(room.PlayersID, msg)
 
 }
