@@ -11,7 +11,7 @@ import (
 func CreateVote(v *model.Vote) {
 	rdb := voteRedisConnection()
 
-	err := rdb.SAdd(ctx, v.PlayerID, v.Vote).Err()
+	err := rdb.LPush(ctx, v.PlayerID, v.Vote).Err()
 	if err != nil {
 		log.Println(err)
 	}
@@ -21,7 +21,7 @@ func CreateVote(v *model.Vote) {
 func ReadVotes(id string) []float64 {
 	rdb := voteRedisConnection()
 
-	votesStr, err := rdb.SMembers(ctx, id).Result()
+	votesStr, err := rdb.LRange(ctx, id, 0, -1).Result()
 	if err != nil {
 		log.Println(err)
 	}
