@@ -80,7 +80,7 @@ func (c *Client) disconnect() {
 		return
 	}
 
-	playersNames := db.ReadPlayersNames(room.PlayersID)
+	playersNames := db.ReadPlayers(room.PlayersID)
 	msg := content.NewPlayers(playersNames)
 	c.Lobby.Broadcast(room.PlayersID, msg)
 

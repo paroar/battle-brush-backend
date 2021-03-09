@@ -79,7 +79,7 @@ func (l *Lobby) joinByURL(roomid string, client *Client, player *model.Player) {
 	player.RoomID = room.ID
 	db.UpdatePlayer(player)
 
-	playersNames := db.ReadPlayersNames(room.PlayersID)
+	playersNames := db.ReadPlayers(room.PlayersID)
 	msg = content.NewPlayers(playersNames)
 	l.Broadcast(room.PlayersID, msg)
 

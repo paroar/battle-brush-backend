@@ -9,9 +9,9 @@ import (
 
 // Player struct
 type Player struct {
-	ID     string `redis:"id"`
-	Name   string `redis:"name"`
-	RoomID string `redis:"roomid"`
+	ID     string `redis:"id" json:"id"`
+	Name   string `redis:"name" json:"name"`
+	RoomID string `redis:"roomid" json:"roomid"`
 }
 
 // NewPlayer constructor

@@ -79,17 +79,17 @@ func DeletePlayer(id string) (*model.Player, error) {
 	return player, nil
 }
 
-// ReadPlayersNames gets players names of the room
-func ReadPlayersNames(playersid []string) []string {
-	playersNames := []string{}
+// ReadPlayers gets players names of the room
+func ReadPlayers(playersid []string) []*model.Player {
+	players := []*model.Player{}
 	for _, p := range playersid {
 		player, err := ReadPlayer(p)
 		if err != nil {
 			log.Println(err)
 		} else {
-			playersNames = append(playersNames, player.Name)
+			players = append(players, player)
 		}
 	}
 
-	return playersNames
+	return players
 }

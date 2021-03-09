@@ -28,7 +28,7 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	room := model.NewRoom(clientid, "Private")
 	db.CreateRoom(room)
 
-	playersNames := db.ReadPlayersNames(room.PlayersID)
+	playersNames := db.ReadPlayers(room.PlayersID)
 	msg := content.NewPlayers(playersNames)
 	l.Broadcast(room.PlayersID, msg)
 
@@ -69,7 +69,7 @@ func HandlePublicRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reques
 	player.RoomID = room.ID
 	db.UpdatePlayer(player)
 
-	playersNames := db.ReadPlayersNames(room.PlayersID)
+	playersNames := db.ReadPlayers(room.PlayersID)
 	msg := content.NewPlayers(playersNames)
 	l.Broadcast(room.PlayersID, msg)
 

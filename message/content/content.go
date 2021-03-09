@@ -64,15 +64,15 @@ func NewLogin(player *model.Player) *message.Envelope {
 
 // Players struct
 type Players struct {
-	UserNames []string `json:"usernames"`
+	Data []*model.Player `json:"data"`
 }
 
 // NewPlayers message constructor
-func NewPlayers(playersNames []string) *message.Envelope {
+func NewPlayers(players []*model.Player) *message.Envelope {
 	return &message.Envelope{
 		Type: TypePlayers,
 		Content: Players{
-			UserNames: playersNames,
+			Data: players,
 		},
 	}
 }
