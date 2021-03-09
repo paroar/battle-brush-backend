@@ -17,7 +17,7 @@ type Connection struct {
 // NewConnection message constructor
 func NewConnection(roomid, status, roomtype string) *message.Envelope {
 	return &message.Envelope{
-		Type: message.TypeConnection,
+		Type: TypeConnection,
 		Content: Connection{
 			RoomID:   roomid,
 			Status:   status,
