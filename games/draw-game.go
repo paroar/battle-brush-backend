@@ -43,13 +43,26 @@ func (d *DrawGame) StartGame(l *websocket.Lobby) {
 	}
 
 	//Drawing
+	d.changeState(room, l, StateLoadingDrawing, 5)
 	d.changeState(room, l, StateDrawing, 10)
+
 	//Recolecting Img
 	d.changeState(room, l, StateRecolecting, 1)
+
+	//Voting
+	d.changeState(room, l, StateLoadingVoting, 5)
 	d.voting(room, l)
+
+	//Winner
 	d.win(room, l)
+	d.changeState(room, l, StateLoadingWinner, 5)
+	d.changeState(room, l, StateWinner, 10)
+
+	//Clean db
 	d.cleaning()
+
 	//Waiting
+	d.changeState(room, l, StateLoading, 1)
 	d.changeState(room, l, StateWaiting, 1)
 }
 
@@ -114,15 +127,11 @@ func (d *DrawGame) win(room *model.Room, l *websocket.Lobby) {
 			continue
 		}
 		d.broadcastWinner(l, drawing.Img, player.ID, player.Name)
-		d.changeState(room, l, StateWinner, 5)
 		return
 	}
-
-	d.changeState(room, l, StateWinner, 5)
 }
 
 func (d *DrawGame) voting(room *model.Room, l *websocket.Lobby) {
-	d.changeState(room, l, StateLoading, 1)
 	for _, p := range d.Players {
 		img, err := db.ReadDrawing(p)
 		if err != nil {
@@ -133,7 +142,7 @@ func (d *DrawGame) voting(room *model.Room, l *websocket.Lobby) {
 		l.Broadcast(d.Players, msg)
 
 		d.changeState(room, l, StateVoting, 5)
-		d.changeState(room, l, StateRecolectingVotes, 2)
+		d.changeState(room, l, StateRecolectingVotes, 1)
 		d.changeState(room, l, StateLoading, 1)
 	}
 }
