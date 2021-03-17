@@ -44,7 +44,7 @@ func (d *DrawGame) StartGame(l *websocket.Lobby) {
 
 	//Drawing
 	d.changeState(room, l, StateLoadingDrawing, 5)
-	d.changeState(room, l, StateDrawing, 10)
+	d.changeState(room, l, StateDrawing, 60)
 
 	//Recolecting Img
 	d.changeState(room, l, StateRecolecting, 1)
@@ -141,7 +141,7 @@ func (d *DrawGame) voting(room *model.Room, l *websocket.Lobby) {
 		msg := content.NewImage(img.Img, img.PlayerID)
 		l.Broadcast(d.Players, msg)
 
-		d.changeState(room, l, StateVoting, 5)
+		d.changeState(room, l, StateVoting, 10)
 		d.changeState(room, l, StateRecolectingVotes, 1)
 		d.changeState(room, l, StateLoading, 1)
 	}
