@@ -30,6 +30,7 @@ const (
 	WINNER_TIME      = 10
 	VOTING_TIME      = 10
 	RECOLECTING_TIME = 1
+	END_TIME         = 2
 )
 
 // NewDrawGame constructor
@@ -70,8 +71,8 @@ func (d *DrawGame) StartGame(l *websocket.Lobby) {
 	d.cleaning()
 
 	//Waiting
-	d.changeState(room, l, model.StateLoading, LOADING_TIME)
-	d.changeState(room, l, model.StateWaiting, LOADING_TIME)
+	d.changeState(room, l, model.StateLoading, END_TIME)
+	d.changeState(room, l, model.StateWaiting, 0)
 }
 
 func (d *DrawGame) broadcastState(l *websocket.Lobby, state string) {
