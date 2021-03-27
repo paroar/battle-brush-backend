@@ -63,6 +63,10 @@ func (l *Lobby) joinByURL(roomid string, client *Client, player *model.Player) {
 		log.Println(err)
 	}
 
+	if room.State != "Waiting" {
+		return
+	}
+
 	var msg *message.Envelope
 	if err != nil {
 		msg = content.NewConnection(roomid, "room not found", "")

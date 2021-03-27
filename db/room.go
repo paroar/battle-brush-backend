@@ -44,13 +44,39 @@ func UpdateRoom(r *model.Room) {
 	}
 }
 
-//DeleteRoom updates a room from redis database
+//DeleteRoom deletes a room from redis database
 func DeleteRoom(id string) {
 	rdb := roomRedisConnection()
 
 	err := rdb.Del(ctx, id).Err()
 	if err != nil {
 		log.Println(err)
+	}
+}
+
+//DeleteEmptyRooms deletes all empty rooms from redis database
+func DeleteEmptyRooms() {
+	rdb := roomRedisConnection()
+
+	iterator := rdb.Scan(ctx, 0, "*", 1).Iterator()
+	for iterator.Next(ctx) {
+
+		roomid := iterator.Val()
+
+		res, err := rdb.HGetAll(ctx, roomid).Result()
+		if err != nil {
+			log.Println(err)
+		}
+
+		var r model.Room
+		if err := r.UnmarshalBinary([]byte(res["room"])); err != nil {
+			log.Println(err)
+		}
+
+		if len(r.PlayersID) <= 0 {
+			DeleteRoom(r.ID)
+		}
+
 	}
 }
 
@@ -73,7 +99,7 @@ func AvailablePublicRoom() (*model.Room, error) {
 			return nil, err
 		}
 
-		if r.RoomType == "Public" && len(r.PlayersID) < 5 {
+		if r.RoomType == "Public" && len(r.PlayersID) < 5 && r.State == "Waiting" {
 			return &r, nil
 		}
 
