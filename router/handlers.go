@@ -28,6 +28,9 @@ func HandlePrivateRoom(l *websocket.Lobby, rw http.ResponseWriter, r *http.Reque
 	room := model.NewRoom(clientid, "Private")
 	db.CreateRoom(room)
 
+	player.RoomID = room.ID
+	db.UpdatePlayer(player)
+
 	playersNames := db.ReadPlayers(room.PlayersID)
 	msg := content.NewPlayers(playersNames)
 	l.Broadcast(room.PlayersID, msg)
@@ -107,24 +110,24 @@ func HandleStartGame(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request
 
 //HandleChat handler manages chat
 func HandleChat(l *websocket.Lobby, rw http.ResponseWriter, r *http.Request) {
-	var chat chatJSON
-	err := json.NewDecoder(r.Body).Decode(&chat)
+	var chatMessage chatMessageJSON
+	err := json.NewDecoder(r.Body).Decode(&chatMessage)
 	if err != nil {
 		http.Error(rw, "Couldn't decode chat", http.StatusBadRequest)
 		return
 	}
 
-	room, err := db.ReadRoom(chat.Roomid)
+	room, err := db.ReadRoom(chatMessage.Roomid)
 	if err != nil {
 		http.Error(rw, "Room not found", http.StatusBadRequest)
 		return
 	}
 
-	msg := content.NewChat(chat.Roomid, chat.Playerid, chat.Username, chat.Msg)
+	msg := content.NewMessage(chatMessage.Roomid, chatMessage.Playerid, chatMessage.Username, chatMessage.Msg)
 	l.Broadcast(room.PlayersID, msg)
 
 	rw.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(rw).Encode(chat)
+	json.NewEncoder(rw).Encode(chatMessage)
 }
 
 //HandleImg handler manages img

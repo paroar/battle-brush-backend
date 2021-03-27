@@ -4,7 +4,8 @@ type roomJSON struct {
 	ID string `json:"roomid"`
 }
 
-type chatJSON struct {
+type chatMessageJSON struct {
+	ID       string `json:"id"`
 	Roomid   string `json:"roomid"`
 	Playerid string `json:"playerid"`
 	Username string `json:"username"`

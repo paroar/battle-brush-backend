@@ -3,6 +3,7 @@ package content
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/paroar/battle-brush-backend/message"
 	"github.com/paroar/battle-brush-backend/model"
 )
@@ -28,8 +29,9 @@ func NewConnection(roomid, status, roomtype string) *message.Envelope {
 
 // JoinLeave struct
 type JoinLeave struct {
+	ID       string `json:"id"`
 	UserName string `json:"username"`
-	ID       string `json:"userid"`
+	UserID   string `json:"userid"`
 	Msg      string `json:"msg"`
 }
 
@@ -38,8 +40,9 @@ func NewJoinLeave(player *model.Player, msg string) *message.Envelope {
 	return &message.Envelope{
 		Type: TypeJoinLeave,
 		Content: JoinLeave{
+			ID:       uuid.NewString(),
 			UserName: player.Name,
-			ID:       player.ID,
+			UserID:   player.ID,
 			Msg:      fmt.Sprintf("%s %s", player.Name, msg),
 		},
 	}
@@ -144,21 +147,23 @@ func NewTheme(theme string) *message.Envelope {
 	}
 }
 
-// Chat struct
-type Chat struct {
+// Message struct
+type Message struct {
+	ID       string `json:"id"`
 	Roomid   string `json:"roomid"`
-	Playerid string `json:"playerid"`
+	UserID   string `json:"userid"`
 	Username string `json:"username"`
 	Msg      string `json:"msg"`
 }
 
-// NewChat message constructor
-func NewChat(roomid, playerid, username, msg string) *message.Envelope {
+// NewMessage message constructor
+func NewMessage(roomid, userid, username, msg string) *message.Envelope {
 	return &message.Envelope{
 		Type: TypeChat,
-		Content: Chat{
+		Content: Message{
+			ID:       uuid.NewString(),
 			Roomid:   roomid,
-			Playerid: playerid,
+			UserID:   userid,
 			Username: username,
 			Msg:      msg,
 		},
